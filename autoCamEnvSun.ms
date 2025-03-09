@@ -10,6 +10,11 @@ rollout logs "Процесс работы скрипта" (
 -- Получаем список камер
 fn getCameras = (
     local cams = for obj in objects where superClassOf obj == Camera collect obj
+    if cams.count == 0 then (
+        messageBox "В сцене нет камер!"
+		return undefined
+    )
+    qsort cams (fn compare cam1 cam2 = if cam1.name < cam2.name then -1 else 1)
     return cams
 )
 
@@ -25,6 +30,9 @@ fn createCameraDialog cams = (
         )
     )
     createDialog cameraRollout width: 300 height: 90 modal: true
+	if cameraRollout.cam == undefined then (
+        messageBox "Камера не выбрана!"
+    )
 	return cameraRollout.cam
 )
 
@@ -45,13 +53,19 @@ fn addMessage message color: "blue" bullet: false = (
 -- Устанавливаем выбранную камеру
 fn changeCamera cam = (
     viewport.setCamera cam
-	addMessage ("Установлена камера: " + cam.name) color: "green"
+	addMessage "Установлена камера:" color: "green"
+	addMessage cam.name color: "green" bullet: true
 )
 
 -- Определяем параметры по названию камеры
 fn defineCameraParams cam = (
 	local pattern = "^\D*(\d+)\D+(\d+)\D*?(N?)$"
-	return regex.Match (toUpper cam.name) pattern
+    local match = regex.Match (toUpper cam.name) pattern
+	if not match.Success then (
+		addMessage "По названию камеры не определены параметры" color: "red"
+		return undefined
+	)
+	return match
 )
 
 -- Формируем паттерн для дальнейших поисков
@@ -67,6 +81,7 @@ fn formPattern match = (
 	return "^\D*" + camAngle + "\D+" + camHeight + "\D*" + camDayOrNight + "$"
 )
 
+-- Устанавливаем карту
 fn changeMap pattern = (
     for i = 1 to sme.GetNumViews() do (
         local view = sme.GetView i
@@ -76,9 +91,11 @@ fn changeMap pattern = (
             if ClassOf map == CoronaSelect then (
                 local selected = 0
                 for textmap in map.texmaps where not textmap == undefined do (
-                    if regex.IsMatch textmap.name pattern then (
+                    if regex.IsMatch (toUpper textmap.name) pattern then (
                         map.selected = selected
                         environmentmap = map
+                        addMessage "В Environment Map установлена карта:" color: "green"
+                        addMessage (map.name + " (" + textmap.name + ")") color: "green" bullet: true
                         return map
                     )
                     selected += 1
@@ -86,6 +103,7 @@ fn changeMap pattern = (
             )
         )
     )
+    addMessage "По заданным параметрам не найдена карта" color: "red"
     return undefined
 )
 
@@ -93,17 +111,11 @@ fn changeMap pattern = (
 fn main = (
 	-- Получаем список камер
     local cams = getCameras()
-    if cameras.count == 0 then (
-        messageBox "В сцене нет камер!"
-		return false
-    )
+    if cams == undefined then return undefined
 	
 	-- Создаем окно с выбором камеры
 	local cam = createCameraDialog cams
-	if cam == undefined then (
-        messageBox "Камера не выбрана!"
-		return false
-    )
+    if cam == undefined then return undefined
 	
 	-- Создаем окно с логами
     createLogsDialog()
@@ -113,28 +125,22 @@ fn main = (
 	
 	-- Определяем параметры по названию камеры
 	local match = defineCameraParams cam
-	if not match.Success then (
-		addMessage "По названию камеры не определены параметры" color: "red"
-		return false
-	)
+    if match == undefined then return false
 
 	-- Формируем паттерн для дальнейших поисков
 	local pattern = formPattern match
 
     -- Устанавливаем карту
-    local map = changeMap pattern
-    if map == undefined then (
-        addMessage "По заданным параметрам не найдена карта" color: "red"
-    ) else (
-        addMessage ("Найдена и установлена в Environment Map карта: " + map.name) color: "green"
-    )
+    changeMap pattern
+
+    return true
 )
 
 -- Запускаем скрипт
 fn run = (
-    main()
+    local result = main()
     ForceCompleteRedraw()
-	addMessage "Скрипт закончил работу"
+	if not result == undefined then addMessage "Скрипт закончил работу"
 )
 
 run()

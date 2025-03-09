@@ -1,3 +1,8 @@
+-- Глобальное окно с логами
+rollout logs "Процесс работы скрипта" (
+    dotNetControl control "System.Windows.Forms.RichTextBox" width: 270 height: 200
+)
+
 -- Получаем список камер
 fn getCameras = (
     local cams = for obj in objects where superClassOf obj == Camera collect obj
@@ -20,27 +25,23 @@ fn createCameraDialog cams = (
 )
 
 -- Создаем окно с логами
-fn createLogDialog = (
-    rollout logRollout "Процесс работы скрипта" (
-		dotNetControl log "System.Windows.Forms.RichTextBox" width: 270 height: 200
-	)
-    createDialog logRollout width: 300 height: 220
-	logRollout.log.BulletIndent = 10
-	logRollout.log.ReadOnly = true
-    return logRollout
+fn createLogsDialog = (
+    createDialog logs width: 300 height: 220
+	logs.control.BulletIndent = 10
+	logs.control.ReadOnly = true
 )
 
 -- Добавляем сообщения в лог
-fn addLogMessage logRollout message color: "blue" bullet: false = (
-	logRollout.log.SelectionColor = getProperty (dotNetClass "System.Drawing.Color") color
-	logRollout.log.SelectionBullet = bullet
-    logRollout.log.AppendText (message + "\n")
+fn addMessage message color: "blue" bullet: false = (
+	logs.control.SelectionColor = getProperty (dotNetClass "System.Drawing.Color") color
+	logs.control.SelectionBullet = bullet
+    logs.control.AppendText (message + "\n")
 )
 
 -- Устанавливаем выбранную камеру
-fn changeCamera cam logRollout = (
+fn changeCamera cam = (
     viewport.setCamera cam
-	addLogMessage logRollout ("Установлена камера: " + cam.name) color: "green"
+	addMessage ("Установлена камера: " + cam.name) color: "green"
 )
 
 -- Определяем параметры по названию камеры
@@ -52,15 +53,15 @@ fn defineCameraParams cam = (
 )
 
 -- Формируем паттерн для дальнейших поисков
-fn formPattern match logRollout = (
+fn formPattern match = (
 	local camAngle = match.Groups.item[1].value
 	local camHeight = match.Groups.item[2].value
 	local camDayOrNight = match.Groups.item[3].value
 	if camDayOrNight == "" then camDayOrNight = "D"
-	addLogMessage logRollout ("По названию камеры определены параметры:")
-	addLogMessage logRollout ("Ракурс: " + camAngle) bullet: true
-	addLogMessage logRollout ("Высота: " + camHeight) bullet: true
-	addLogMessage logRollout ("День/ночь: " + camDayOrNight) bullet: true
+	addMessage ("По названию камеры определены параметры:")
+	addMessage ("Ракурс: " + camAngle) bullet: true
+	addMessage ("Высота: " + camHeight) bullet: true
+	addMessage ("День/ночь: " + camDayOrNight) bullet: true
 	return "^\D*" + camAngle + "\D+" + camHeight + "\D*" + camDayOrNight + "$"
 )
 
@@ -81,26 +82,27 @@ fn main = (
     )
 	
 	-- Создаем окно с логами
-    local logRollout = createLogDialog()
+    createLogsDialog()
 	
 	-- Устанавливаем выбранную камеру
-    changeCamera cam logRollout
-
+    changeCamera cam
 	
 	-- Определяем параметры по названию камеры
 	local match = defineCameraParams cam
 	if not match.Success then (
-		addLogMessage logRollout "По названию камеры не определены параметры" color: "red"
-		addLogMessage logRollout "Скрипт закончил работу"
+		addMessage "По названию камеры не определены параметры" color: "red"
 		return false
 	)
 
 	-- Формируем паттерн для дальнейших поисков
-	local pattern = formPattern match logRollout
-
-	ForceCompleteRedraw()
-	addLogMessage logRollout "Скрипт закончил работу"
+	local pattern = formPattern match
 )
 
 -- Запускаем скрипт
-main()
+fn run = (
+    main()
+    ForceCompleteRedraw()
+	addMessage "Скрипт закончил работу"
+)
+
+run()

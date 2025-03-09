@@ -1,3 +1,7 @@
+-- .NET класс для работы с регулярными выражениями
+dotNet.loadAssembly "System.Text.RegularExpressions"
+regex = dotNetClass "System.Text.RegularExpressions.Regex"
+
 -- Глобальное окно с логами
 rollout logs "Процесс работы скрипта" (
     dotNetControl control "System.Windows.Forms.RichTextBox" width: 270 height: 200
@@ -46,8 +50,6 @@ fn changeCamera cam = (
 
 -- Определяем параметры по названию камеры
 fn defineCameraParams cam = (
-	dotNet.loadAssembly "System.Text.RegularExpressions"
-	local regex = dotNetClass "System.Text.RegularExpressions.Regex"
 	local pattern = "^\D*(\d+)\D+(\d+)\D*?(N?)$"
 	return regex.Match (toUpper cam.name) pattern
 )
@@ -63,6 +65,28 @@ fn formPattern match = (
 	addMessage ("Высота: " + camHeight) bullet: true
 	addMessage ("День/ночь: " + camDayOrNight) bullet: true
 	return "^\D*" + camAngle + "\D+" + camHeight + "\D*" + camDayOrNight + "$"
+)
+
+fn changeMap pattern = (
+    for i = 1 to sme.GetNumViews() do (
+        local view = sme.GetView i
+        for j = 1 to view.GetNumNodes() do (
+            local node = view.GetNode j
+            local map = node.reference
+            if ClassOf map == CoronaSelect then (
+                local selected = 0
+                for textmap in map.texmaps where not textmap == undefined do (
+                    if regex.IsMatch textmap.name pattern then (
+                        map.selected = selected
+                        environmentmap = map
+                        return map
+                    )
+                    selected += 1
+                )
+            )
+        )
+    )
+    return undefined
 )
 
 -- Основная логика
@@ -96,6 +120,14 @@ fn main = (
 
 	-- Формируем паттерн для дальнейших поисков
 	local pattern = formPattern match
+
+    -- Устанавливаем карту
+    local map = changeMap pattern
+    if map == undefined then (
+        addMessage "По заданным параметрам не найдена карта" color: "red"
+    ) else (
+        addMessage ("Найдена и установлена в Environment Map карта: " + map.name) color: "green"
+    )
 )
 
 -- Запускаем скрипт

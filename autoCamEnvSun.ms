@@ -83,6 +83,7 @@ fn formPattern match = (
 
 -- Устанавливаем карту
 fn changeMap pattern = (
+    local foundMaps = #()
     for i = 1 to sme.GetNumViews() do (
         local view = sme.GetView i
         for j = 1 to view.GetNumNodes() do (
@@ -93,18 +94,31 @@ fn changeMap pattern = (
                 for textmap in map.texmaps where not textmap == undefined do (
                     if regex.IsMatch (toUpper textmap.name) pattern then (
                         map.selected = selected
-                        environmentmap = map
-                        addMessage "В Environment Map установлена карта:" color: "green"
-                        addMessage (map.name + " (" + textmap.name + ")") color: "green" bullet: true
-                        return map
+                        append foundMaps #(
+                            map,
+                            textmap.name
+                        )
                     )
                     selected += 1
                 )
             )
         )
     )
-    addMessage "По заданным параметрам не найдена карта" color: "red"
-    return undefined
+    if foundMaps.count == 0 then (
+        addMessage "По заданным параметрам не найдена карта" color: "red"
+        return undefined
+    )
+    if foundMaps.count > 1 then (
+        addMessage "По заданным параметрам найдено несколько карт:" color: "red"
+        for map in foundMaps do (
+            addMessage (map[1].name + " (" + map[2] + ")") color: "red" bullet: true
+        )
+        return undefined
+    )
+    environmentmap = foundMaps[1][1]
+    addMessage "В Environment Map установлена карта:" color: "green"
+    addMessage (foundMaps[1][1].name + " (" + foundMaps[1][2] + ")") color: "green" bullet: true
+    return foundMaps[1][1]
 )
 
 -- Основная логика

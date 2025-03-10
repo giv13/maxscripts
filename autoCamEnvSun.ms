@@ -148,26 +148,23 @@ fn changeCamera cam = (
 
 -- Определяем параметры по названию камеры
 fn defineCameraParams cam = (
-	local pattern = "^\D*(\d+)\D+(\d+)\D*?(N?)$"
+    local pattern = "P(\d+)_H(\d+)_S(\d+)(?:_([DN]))?$"
     local match = regex.Match (toUpper cam.name) pattern
 	if not match.Success then (
 		addMessage "По названию камеры не определены параметры. Убедись, что тебе не требуется перестановка Environment Map и солнца или проверь название камеры!" color: "Tomato"
 		return undefined
 	)
-	return match
-)
-
--- Формируем паттерн для дальнейших поисков
-fn formPattern match = (
-	local camAngle = match.Groups.item[1].value
-	local camHeight = match.Groups.item[2].value
-	local camDayOrNight = match.Groups.item[3].value
-	if camDayOrNight == "" then camDayOrNight = "D"
-	addMessage ("По названию камеры определены параметры:")
-	addMessage ("Ракурс: " + camAngle) bullet: true
-	addMessage ("Высота: " + camHeight) bullet: true
-	addMessage ("День/ночь: " + camDayOrNight) bullet: true
-	return "^\D*" + camAngle + "\D+" + camHeight + "\D*" + camDayOrNight + "$"
+    local params = #()
+    for i = 1 to 4 do (
+        params[i] = match.Groups.item[i].value
+    )
+    if params[4] == "" then params[4] = "D"
+    addMessage ("По названию камеры определены параметры:")
+	addMessage ("Панорама: " + params[1]) bullet: true
+	addMessage ("Высота: " + params[2]) bullet: true
+	addMessage ("Солнце: " + params[3]) bullet: true
+	addMessage ("День/ночь: " + params[4]) bullet: true
+	return params
 )
 
 -- Получаем карты
@@ -190,7 +187,8 @@ fn getMaps = (
 )
 
 -- Устанавливаем карту
-fn changeMap pattern maps = (
+fn changeMap params maps = (
+    local pattern = "P" + params[1] + "_H" + params[2] + (if params[4] == "D" then "(?:_" + params[4] + ")?" else "_" + params[4]) + "$"
     local foundMaps = #()
     for map in maps do (
         local selected = 0
@@ -239,17 +237,14 @@ fn main = (
     changeCamera cam
 	
 	-- Определяем параметры по названию камеры
-	local match = defineCameraParams cam
-    if match == undefined then return false
-
-	-- Формируем паттерн для дальнейших поисков
-	local pattern = formPattern match
+	local params = defineCameraParams cam
+    if params == undefined then return false
 
     -- Получаем карты
     local maps = getMaps()
 
     -- Устанавливаем карту
-    if not maps == undefined then changeMap pattern maps
+    if not maps == undefined then changeMap params maps
 
     return true
 )

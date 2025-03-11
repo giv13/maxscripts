@@ -51,13 +51,13 @@ fn createCameraDialog cams = (
 fn showRules cameraRollout = (
     rollout rulesRollout "Правила именования" (
         group "Камеры" (
-            dotNetControl camTextBox "System.Windows.Forms.RichTextBox" width: 620 height: 166
+            dotNetControl camTextBox "System.Windows.Forms.RichTextBox" width: 580 height: 166
         )
         group "Карты" (
-            dotNetControl mapTextBox "System.Windows.Forms.RichTextBox" width: 620 height: 140
+            dotNetControl mapTextBox "System.Windows.Forms.RichTextBox" width: 580 height: 140
         )
         group "Солнца" (
-            dotNetControl sunTextBox "System.Windows.Forms.RichTextBox" width: 620 height: 153
+            dotNetControl sunTextBox "System.Windows.Forms.RichTextBox" width: 580 height: 179
         )
         on rulesRollout open do (
             local textBox
@@ -68,11 +68,11 @@ fn showRules cameraRollout = (
                 textBox.ReadOnly = true
             )
             textBox = rulesRollout.camTextBox
-            addMessage "Наименование камеры должно формироваться следующим образом: " textBox: textBox newline: false
+            addMessage "Название камеры должно формироваться следующим образом: " textBox: textBox newline: false
             addMessage "*_p(число)_h(число)_s(число)_(D|N)" textBox: textBox style: "Bold" newline: false
             addMessage ", где:" textBox: textBox
             addMessage "*" textBox: textBox style: "Bold" bullet: true newline: false
-            addMessage " - произвольная часть наименования, необязательный параметр" textBox: textBox
+            addMessage " - произвольная часть названия, необязательный параметр" textBox: textBox
             addMessage "p(число)" textBox: textBox style: "Bold" bullet: true newline: false
             addMessage " - номер панорамы, обязательный параметр" textBox: textBox
             addMessage "h(число)" textBox: textBox style: "Bold" bullet: true newline: false
@@ -81,43 +81,44 @@ fn showRules cameraRollout = (
             addMessage " - номер солнца, обязательный параметр" textBox: textBox
             addMessage "(D|N)" textBox: textBox style: "Bold" bullet: true newline: false
             addMessage " - время суток, необязательный параметр, по умолчанию: D" textBox: textBox
-            addMessage "\nПримеры правильных наименований:" textBox: textBox
+            addMessage "\nПримеры правильных названий:" textBox: textBox
             addMessage "p01_h025_s001" textBox: textBox bullet: true
             addMessage "Cam_p02_h050_s002" textBox: textBox bullet: true
             addMessage "Camera_p03_h100_s003_D" textBox: textBox bullet: true
             addMessage "Камера_p04_h200_s004_N" textBox: textBox bullet: true newline: false
             textBox = rulesRollout.mapTextBox
-            addMessage "Наименование карт должно формироваться следующим образом: " textBox: textBox newline: false
+            addMessage "Название карты должно формироваться следующим образом: " textBox: textBox newline: false
             addMessage "*_p(число)_h(число)_(D|N)" textBox: textBox style: "Bold" newline: false
             addMessage ", где:" textBox: textBox
             addMessage "*" textBox: textBox style: "Bold" bullet: true newline: false
-            addMessage " - произвольная часть наименования, необязательный параметр" textBox: textBox
+            addMessage " - произвольная часть названий, необязательный параметр" textBox: textBox
             addMessage "p(число)" textBox: textBox style: "Bold" bullet: true newline: false
             addMessage " - номер панорамы, обязательный параметр" textBox: textBox
             addMessage "h(число)" textBox: textBox style: "Bold" bullet: true newline: false
             addMessage " - высота съемки, обязательный параметр" textBox: textBox
             addMessage "(D|N)" textBox: textBox style: "Bold" bullet: true newline: false
             addMessage " - время суток, необязательный параметр, по умолчанию: D" textBox: textBox
-            addMessage "\nПримеры правильных наименований:" textBox: textBox
+            addMessage "\nПримеры правильных названий:" textBox: textBox
             addMessage "p01_h025" textBox: textBox bullet: true
             addMessage "Map_p02_h050_D" textBox: textBox bullet: true
             addMessage "Карта_p03_h100_N" textBox: textBox bullet: true newline: false
             textBox = rulesRollout.sunTextBox
-            addMessage "Наименование солнц должно формироваться следующим образом: " textBox: textBox newline: false
+            addMessage "Название солнца должно формироваться следующим образом: " textBox: textBox newline: false
             addMessage "*(число)" textBox: textBox style: "Bold" newline: false
             addMessage ", где:" textBox: textBox
             addMessage "*" textBox: textBox style: "Bold" bullet: true newline: false
-            addMessage " - произвольная часть наименования, необязательный параметр" textBox: textBox
+            addMessage " - произвольная часть названия, необязательный параметр" textBox: textBox
             addMessage "(число)" textBox: textBox style: "Bold" bullet: true newline: false
             addMessage " - произвольный номер солнца, обязательный параметр" textBox: textBox
-            addMessage "\nТо есть солнца можно именовать как угодно, подойдут даже наименования по умолчанию. Главное, чтобы в названии было число, которое указывается в наименовании камеры для связи." textBox: textBox
-            addMessage "\nПримеры правильных наименований:" textBox: textBox
+            addMessage "\nТо есть солнца можно именовать как угодно, подойдут даже названия по умолчанию. Главное, чтобы в конце названиия было число. Это число указывается в названии камеры для связи." textBox: textBox
+            addMessage "\nЕсли есть необходимость в фейковых солнцах, такие солнца нужно замоморозить (галочка Frozen)." textBox: textBox
+            addMessage "\nПримеры правильных названий:" textBox: textBox
             addMessage "Corona Sun001" textBox: textBox bullet: true
             addMessage "Sun_002" textBox: textBox bullet: true
             addMessage "Солнце_003" textBox: textBox bullet: true newline: false
         )
     )
-    createDialog rulesRollout width: 650 height: 560 modal: true parent: cameraRollout.hwnd
+    createDialog rulesRollout width: 610 height: 586 modal: true parent: cameraRollout.hwnd
     cameraRollout.cameraList.enabled = true
     cameraRollout.selectButton.enabled = true
     cameraRollout.hintButton.enabled = true
@@ -160,10 +161,14 @@ fn defineCameraParams cam = (
     )
     if params[4] == "" then params[4] = "D"
     addMessage ("По названию камеры определены параметры:")
-	addMessage ("Панорама: " + params[1]) bullet: true
-	addMessage ("Высота: " + params[2]) bullet: true
-	addMessage ("Солнце: " + params[3]) bullet: true
-	addMessage ("День/ночь: " + params[4]) bullet: true
+	addMessage "Панорама: " bullet: true newline: false
+	addMessage params[1] style: "Bold"
+	addMessage "Высота: " bullet: true newline: false
+	addMessage params[2] style: "Bold"
+	addMessage "Солнце: " bullet: true newline: false
+	addMessage params[3] style: "Bold"
+	addMessage "День/ночь: " bullet: true newline: false
+	addMessage params[4] style: "Bold"
 	return params
 )
 
@@ -180,7 +185,7 @@ fn getMaps = (
         )
     )
     if maps.count == 0 then (
-        addMessage ("Не найдены карты CoronaSelect, перестановка Environment Map не требуется")
+        addMessage ("Карты CoronaSelect не найдены, перестановка карты не требуется")
 		return undefined
     )
     return maps
@@ -204,7 +209,8 @@ fn changeMap params maps = (
         )
     )
     if foundMaps.count == 0 then (
-        addMessage "По заданным параметрам не найдена карта" color: "Tomato"
+        addMessage "По заданным параметрам карта не найдена" color: "Tomato"
+        addMessage "Карта не установлена" color: "Tomato" style: "Bold"
         return undefined
     )
     if foundMaps.count > 1 then (
@@ -212,12 +218,69 @@ fn changeMap params maps = (
         for map in foundMaps do (
             addMessage (map[1].name + " (" + map[2] + ")") color: "Tomato" bullet: true
         )
+        addMessage "Карта не установлена" color: "Tomato" style: "Bold"
         return undefined
     )
     environmentmap = foundMaps[1][1]
     addMessage "В Environment Map установлена карта: " color: "LimeGreen" newline: false
     addMessage (foundMaps[1][1].name + " (" + foundMaps[1][2] + ")") color: "LimeGreen" style: "Bold"
     return foundMaps[1][1]
+)
+
+-- Получаем солнца
+fn getSuns = (
+    local suns = for obj in objects where classOf obj == CoronaSun collect obj
+    if suns.count == 0 then (
+        addMessage "Солнца не найдены, перестановка солнца не требуется"
+		return undefined
+    )
+    if suns.count == 1 then (
+        addMessage ("Найдено одно солнце, перестановка солнца не требуется")
+        return undefined
+    )
+    return suns
+)
+
+-- Устанавливаем солнце
+fn changeSun params suns = (
+    local pattern = params[3] + "$"
+    local foundSuns = #()
+    for sun in suns do (
+        if regex.IsMatch sun.name pattern then (
+            append foundSuns sun
+        )
+    )
+    if foundSuns.count == 0 then (
+        addMessage "По заданным параметрам солнце не найдено" color: "Tomato"
+        addMessage "Солнце не установлено" color: "Tomato" style: "Bold"
+        return undefined
+    )
+    if foundSuns.count > 1 then (
+        addMessage "По заданным параметрам найдено несколько солнц:" color: "Tomato"
+        for sun in foundSuns do (
+            addMessage sun.name color: "Tomato" bullet: true
+        )
+        addMessage "Солнце не установлено" color: "Tomato" style: "Bold"
+        return undefined
+    )
+    local extraSuns = #()
+    for sun in suns do (
+        if sun.isFrozen then (
+            append extraSuns sun
+        )
+        sun.isHidden = (sun != foundSuns[1] and not sun.isFrozen)
+    )
+    addMessage "Установлено солнце: " color: "LimeGreen" newline: false
+    addMessage foundSuns[1].name color: "LimeGreen" style: "Bold"
+    if not extraSuns.count == 0 then (
+        addMessage "Установлены фейковые солнца: " color: "LimeGreen" newline: false
+        local extraSunNames = ""
+        for i = 1 to extraSuns.count do (
+            addMessage extraSuns[1].name color: "LimeGreen" style: "Bold" newline: false
+            addMessage (if i < extraSuns.count then ", " else "\n") color: "LimeGreen" newline: false
+        )
+    )
+    return foundSuns[1]
 )
 
 -- Основная логика
@@ -245,6 +308,12 @@ fn main = (
 
     -- Устанавливаем карту
     if not maps == undefined then changeMap params maps
+
+    -- Получаем солнца
+    local suns = getSuns()
+
+    -- Устанавливаем солнце
+    if not suns == undefined then changeSun params suns
 
     return true
 )

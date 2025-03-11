@@ -2,7 +2,10 @@
 dotNet.loadAssembly "System.Text.RegularExpressions"
 regex = dotNetClass "System.Text.RegularExpressions.Regex"
 
--- Глобальное окно с логами
+-- Путь для сохранения рендеров
+global outputPath = ""
+
+-- Окно с логами
 rollout logs "Процесс работы скрипта" (
     group "" (
         dotNetControl textBox "System.Windows.Forms.RichTextBox" width: 500 height: 200
@@ -22,29 +25,50 @@ fn getCameras = (
 
 -- Создаем окно с выбором камеры
 fn createCameraDialog cams = (
-    rollout cameraRollout "Выберите камеру" (
-        group "Камеры" (
-            dropdownlist cameraList items: (for cam in cams collect cam.name)
-            button selectButton "Выбрать" width: 100 across: 2 align: #left
+    rollout cameraRollout "AutoCamEnvSunBatchRender" (
+        group "Настройка параметров" (
+            multilistbox cameraList "Выбери камеры:" items: (for cam in cams collect cam.name)
+            label pathLabel "Укажи папку для сохранения:" align: #left
+            edittext pathFolder width: 240 height: 20 across: 2 labelOnTop: true readonly: true
+            button pathButton "..." align: #right
+            button selectButton "Запустить скрипт" across: 2 align: #left
             button hintButton "Правила именования" images: #(((getDir #ui_ln) + "IconsDark\bip_mflgraph_i.bmp"), undefined, 40, 9, 9, 10, 10, false, true) border: false align: #right
         )
-		local cam = undefined
+        on pathButton pressed do (
+            local folderDialog = dotNetObject "System.Windows.Forms.FolderBrowserDialog"
+            folderDialog.Description = "Укажи папку для сохранения:"
+            local dialogResult = folderDialog.showDialog()
+            if (dialogResult.ToString() == "OK") then (
+                outputPath = folderDialog.selectedPath + "\\"
+                pathFolder.text = folderDialog.selectedPath
+            )
+        )
+		local selectedCams = #()
         on selectButton pressed do (
-            cam = cameraRollout.cams[cameraList.selection]
+            local sel = cameraList.selection as Array
+            if sel.count == 0 then (
+                messageBox "Не выбраны камеры!" title: "Ошибка"
+                return false
+            )
+            if outputPath == "" then (
+                messageBox "Не выбрана папка для сохранения!" title: "Ошибка"
+                return false
+            )
+            if not doesFileExist outputPath then (
+                messageBox "Указанной папки не существует!" title: "Ошибка"
+                return false
+            )
+            local cams = cameraRollout.cams
+            for s in sel do append selectedCams cams[s]
             destroyDialog cameraRollout
         )
         on hintButton pressed do (
-            cameraList.enabled = false
-            selectButton.enabled = false
-            hintButton.enabled = false
+            for control in cameraRollout.controls do control.enabled = false
             showRules cameraRollout
         )
     )
-    createDialog cameraRollout width: 300 height: 90 modal: true
-	if cameraRollout.cam == undefined then (
-        messageBox "Камера не выбрана!" title: "Ошибка"
-    )
-	return cameraRollout.cam
+    createDialog cameraRollout width: 300 height: 264 modal: true
+	return cameraRollout.selectedCams
 )
 
 -- Показываем правила именования
@@ -119,9 +143,7 @@ fn showRules cameraRollout = (
         )
     )
     createDialog rulesRollout width: 610 height: 586 modal: true parent: cameraRollout.hwnd
-    cameraRollout.cameraList.enabled = true
-    cameraRollout.selectButton.enabled = true
-    cameraRollout.hintButton.enabled = true
+    for control in cameraRollout.controls do control.enabled = true
 )
 
 -- Создаем окно с логами
@@ -175,7 +197,10 @@ fn defineCameraParams cam = (
 -- Получаем карты
 fn getMaps = (
     local maps = #()
-    if sme.GetNumViews() == 0 and not sme.IsOpen() then sme.Open()
+    if sme.GetNumViews() == 0 and not sme.IsOpen() then (
+        sme.Open()
+        sme.Close()
+    )
     for i = 1 to sme.GetNumViews() do (
         local view = sme.GetView i
         for j = 1 to view.GetNumNodes() do (
@@ -283,6 +308,23 @@ fn changeSun params suns = (
     return foundSuns[1]
 )
 
+-- Рендерим
+fn runRender params = (
+    renderSceneDialog.open()
+    tif.setType(#color)
+    tif.setCompression(#none)
+    tif.setAlpha(#false)
+    tif.setDPI(300)
+    rendSaveFile = true
+    rendOutputFilename = outputPath + params[1] + "_" + params[2] + "_" + params[4] + ".tif"
+    renderSceneDialog.update()
+    max quick render
+    rendSaveFile = false
+    rendOutputFilename = ""
+    renderSceneDialog.update()
+    renderSceneDialog.close()
+)
+
 -- Основная логика
 fn main = (
 	-- Получаем камеры
@@ -290,30 +332,35 @@ fn main = (
     if cams == undefined then return undefined
 	
 	-- Создаем окно с выбором камеры
-	local cam = createCameraDialog cams
-    if cam == undefined then return undefined
+	local selectedCams = createCameraDialog cams
+    if selectedCams.count == 0 then return undefined
 	
 	-- Создаем окно с логами
     createLogsDialog()
 	
-	-- Устанавливаем выбранную камеру
-    changeCamera cam
-	
-	-- Определяем параметры по названию камеры
-	local params = defineCameraParams cam
-    if params == undefined then return false
+    for cam in selectedCams do (
+        -- Устанавливаем выбранную камеру
+        changeCamera cam
+        
+        -- Определяем параметры по названию камеры
+        local params = defineCameraParams cam
+        if params == undefined then return false
 
-    -- Получаем карты
-    local maps = getMaps()
+        -- Получаем карты
+        local maps = getMaps()
 
-    -- Устанавливаем карту
-    if not maps == undefined then changeMap params maps
+        -- Устанавливаем карту
+        if not maps == undefined then changeMap params maps
 
-    -- Получаем солнца
-    local suns = getSuns()
+        -- Получаем солнца 
+        local suns = getSuns()
 
-    -- Устанавливаем солнце
-    if not suns == undefined then changeSun params suns
+        -- Устанавливаем солнце
+        if not suns == undefined then changeSun params suns
+
+        -- Рендерим
+        runRender params
+    )
 
     return true
 )

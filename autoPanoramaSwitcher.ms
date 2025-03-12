@@ -349,6 +349,18 @@ fn runRender params path = (
     rendSaveFile = true
     local outputFilename = params[1] + "_" + params[2] + "_" + params[4] + ".tif"
     rendOutputFilename = path + "\\" + outputFilename
+    local manager = maxOps.GetCurRenderElementMgr()
+    for i = 0 to (manager.NumRenderElements() - 1) do (
+        local element = manager.GetRenderElement i
+        if (classOf element == CShading_LightSelect) then (
+            local nodes = element.includedNodes
+            local hiddenNodes = nodes.count
+            for node in nodes do (
+                if not node.isHidden then hiddenNodes -= 1
+            )
+            element.enabled = hiddenNodes == 0
+        )
+    )
     renderSceneDialog.update()
     max quick render
     rendSaveFile = false

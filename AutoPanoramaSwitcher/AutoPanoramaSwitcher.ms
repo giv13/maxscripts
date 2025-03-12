@@ -1,6 +1,5 @@
-if not apsComplete == undefined and not apsComplete then throw("Скрипт уже запущен!")
+if not apsComplete == undefined and not apsComplete then throw ("Скрипт уже запущен!")
 
--- Путь для сохранения рендеров, активность скрипта, завершенность скрипта
 global apsActive = true
 global apsComplete = false
 
@@ -26,7 +25,7 @@ fn getCameras = (
     local cams = for obj in objects where superClassOf obj == Camera collect obj
     if cams.count == 0 then (
         messageBox "В сцене нет камер!" title: "Ошибка"
-		return undefined
+        return undefined
     )
     qsort cams (fn compare cam1 cam2 = if cam1.name < cam2.name then -1 else 1)
     return cams
@@ -34,7 +33,7 @@ fn getCameras = (
 
 -- Создаем окно с выбором опций
 fn createOptionsDialog cams = (
-    rollout optionsRollout "autoPanoramaSwitcher" (
+    rollout optionsRollout "Auto Panorama Switcher" (
         group "Настройка опций" (
             multilistbox cameraList "Выбери камеры:" items: (for cam in cams collect cam.name)
             label pathLabel "Укажи папку для сохранения:" align: #left
@@ -43,7 +42,7 @@ fn createOptionsDialog cams = (
             button runButton "Запустить скрипт" across: 2 align: #left
             button hintButton "Правила именования" images: #(((getDir #ui_ln) + "IconsDark\bip_mflgraph_i.bmp"), undefined, 40, 9, 9, 10, 10, false, true) border: false align: #right
         )
-		local selectedCams = #()
+        local selectedCams = #()
         on pathButton pressed do (
             local folderDialog = dotNetObject "System.Windows.Forms.FolderBrowserDialog"
             folderDialog.Description = "Укажи папку для сохранения:"
@@ -76,7 +75,7 @@ fn createOptionsDialog cams = (
         )
     )
     createDialog optionsRollout width: 300 height: 264 modal: true
-	return #(optionsRollout.selectedCams, optionsRollout.pathFolder.text)
+    return #(optionsRollout.selectedCams, optionsRollout.pathFolder.text)
 )
 
 -- Показываем правила именования
@@ -159,12 +158,12 @@ fn createLogsDialog = (
     createDialog logs width: 530 height: 300
     logs.textBox.BackColor = (dotNetClass "System.Drawing.Color").FromArgb(-12303292)
     logs.textBox.BorderStyle = (dotNetClass "System.Windows.Forms.BorderStyle").None
-	logs.textBox.ReadOnly = true
+    logs.textBox.ReadOnly = true
 )
 
 -- Добавляем сообщения в лог
 fn addMessage message textBox: logs.textBox color: "White" style: "Regular" bullet: false newline: true = (
-	textBox.SelectionColor = getProperty (dotNetClass "System.Drawing.Color") color
+    textBox.SelectionColor = getProperty (dotNetClass "System.Drawing.Color") color
     if bullet then textBox.AppendText "  •  "
     textBox.SelectionFont = dotNetObject "System.Drawing.Font" textBox.Font (getProperty (dotNetClass "System.Drawing.FontStyle") style)
     textBox.AppendText (message + (if newline then "\n" else ""))
@@ -181,25 +180,25 @@ fn changeCamera cam = (
 fn defineCameraParams cam = (
     local pattern = "P(\d+)_H(\d+)_S(\d+)(?:_([DN]))?$"
     local match = (dotNetClass "System.Text.RegularExpressions.Regex").Match (toUpper cam.name) pattern
-	if not match.Success then (
-		addMessage "По названию камеры не определены параметры. Убедись, что тебе не требуется перестановка Environment Map и солнца или проверь название камеры!" color: "Tomato"
-		return undefined
-	)
+    if not match.Success then (
+        addMessage "По названию камеры не определены параметры. Убедись, что тебе не требуется перестановка Environment Map и солнца или проверь название камеры!" color: "Tomato"
+        return undefined
+    )
     local params = #()
     for i = 1 to 4 do (
         params[i] = match.Groups.item[i].value
     )
     if params[4] == "" then params[4] = "D"
     addMessage ("По названию камеры определены параметры:")
-	addMessage "Панорама: " bullet: true newline: false
-	addMessage params[1] style: "Bold"
-	addMessage "Высота: " bullet: true newline: false
-	addMessage params[2] style: "Bold"
-	addMessage "Солнце: " bullet: true newline: false
-	addMessage params[3] style: "Bold"
-	addMessage "День/ночь: " bullet: true newline: false
-	addMessage params[4] style: "Bold"
-	return params
+    addMessage "Панорама: " bullet: true newline: false
+    addMessage params[1] style: "Bold"
+    addMessage "Высота: " bullet: true newline: false
+    addMessage params[2] style: "Bold"
+    addMessage "Солнце: " bullet: true newline: false
+    addMessage params[3] style: "Bold"
+    addMessage "День/ночь: " bullet: true newline: false
+    addMessage params[4] style: "Bold"
+    return params
 )
 
 -- Получаем карты
@@ -219,7 +218,7 @@ fn getMaps = (
     )
     if maps.count == 0 then (
         addMessage ("Карты CoronaSelect не найдены, перестановка карты не требуется")
-		return undefined
+        return undefined
     )
     return maps
 )
@@ -265,7 +264,7 @@ fn getSuns = (
     local suns = for obj in objects where classOf obj == CoronaSun collect obj
     if suns.count == 0 then (
         addMessage "Солнца не найдены, перестановка солнца не требуется"
-		return undefined
+        return undefined
     )
     if suns.count == 1 then (
         addMessage ("Найдено одно солнце, перестановка солнца не требуется")
@@ -373,18 +372,18 @@ fn runRender params path = (
 
 -- Основная логика
 fn main = (
-	-- Получаем камеры
+    -- Получаем камеры
     local cams = getCameras()
     if cams == undefined then return undefined
-	
-	-- Создаем окно с выбором опций
-	local options = createOptionsDialog cams
+    
+    -- Создаем окно с выбором опций
+    local options = createOptionsDialog cams
     if options[1].count == 0 then return undefined
 
-	
-	-- Создаем окно с логами
+    
+    -- Создаем окно с логами
     createLogsDialog()
-	
+    
     for cam in options[1] do (
         if not apsActive then return false
 
@@ -417,7 +416,7 @@ fn main = (
 -- Запускаем скрипт
 fn run = (
     local result = main()
-	if not result == undefined then (
+    if not result == undefined then (
         addMessage "Скрипт завершил работу"
         logs.stopButton.enabled = false
     )

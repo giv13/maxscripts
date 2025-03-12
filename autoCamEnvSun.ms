@@ -2,13 +2,25 @@
 dotNet.loadAssembly "System.Text.RegularExpressions"
 regex = dotNetClass "System.Text.RegularExpressions.Regex"
 
--- Путь для сохранения рендеров
+-- Путь для сохранения рендеров, активность скрипта, завершенность скрипта
 global outputPath = ""
+global active = true
+global complete = false
 
 -- Окно с логами
 rollout logs "Процесс работы скрипта" (
     group "" (
         dotNetControl textBox "System.Windows.Forms.RichTextBox" width: 500 height: 200
+        button stopButton "Остановить скрипт" align: #left
+    )
+    on stopButton pressed do (
+        active = false
+        stopButton.enabled = false
+        addMessage "Скрипт завершит работу после окончания рендера"
+    )
+    on logs oktoclose do (
+        if not complete then messageBox "Закрытие окна запрещено, пока скрипт не завершит работу" title: "Ошибка"
+        return complete
     )
 )
 
@@ -31,7 +43,7 @@ fn createCameraDialog cams = (
             label pathLabel "Укажи папку для сохранения:" align: #left
             edittext pathFolder width: 240 height: 20 across: 2 labelOnTop: true readonly: true
             button pathButton "..." align: #right
-            button selectButton "Запустить скрипт" across: 2 align: #left
+            button runButton "Запустить скрипт" across: 2 align: #left
             button hintButton "Правила именования" images: #(((getDir #ui_ln) + "IconsDark\bip_mflgraph_i.bmp"), undefined, 40, 9, 9, 10, 10, false, true) border: false align: #right
         )
         on pathButton pressed do (
@@ -44,7 +56,7 @@ fn createCameraDialog cams = (
             )
         )
 		local selectedCams = #()
-        on selectButton pressed do (
+        on runButton pressed do (
             local sel = cameraList.selection as Array
             if sel.count == 0 then (
                 messageBox "Не выбраны камеры!" title: "Ошибка"
@@ -148,7 +160,7 @@ fn showRules cameraRollout = (
 
 -- Создаем окно с логами
 fn createLogsDialog = (
-    createDialog logs width: 530 height: 220
+    createDialog logs width: 530 height: 300
     logs.textBox.BackColor = (dotNetClass "System.Drawing.Color").FromArgb(-12303292)
     logs.textBox.BorderStyle = (dotNetClass "System.Windows.Forms.BorderStyle").None
 	logs.textBox.ReadOnly = true
@@ -308,21 +320,47 @@ fn changeSun params suns = (
     return foundSuns[1]
 )
 
+-- Показываем окно подтверждения рендера
+fn createTimerDialog = (
+    rollout timerRollout "" (
+        local countdown = 20
+        local confirmed = true
+        timer autoYes interval: 1000
+        on timerRollout open do (
+            confirmed = queryBox ("Окно закроется с подтверждением через " + countdown as String + " секунд") title: "Запустить рендер?" parent: timerRollout.hwnd
+            destroyDialog timerRollout
+        )
+        on autoYes tick do (
+            if autoYes.ticks == countdown then (
+                countdown = 0
+                destroyDialog timerRollout
+            )
+        )
+    )
+    createDialog timerRollout width: 50 height: 0 modal: true parent: logs.hwnd
+    if not timerRollout.confirmed and not timerRollout.countdown == 0 then addMessage "Рендер отменен пользователем"
+    return timerRollout.confirmed or timerRollout.countdown == 0
+)
+
 -- Рендерим
 fn runRender params = (
+    addMessage "Запуск рендера"
     renderSceneDialog.open()
     tif.setType(#color)
     tif.setCompression(#none)
     tif.setAlpha(#false)
     tif.setDPI(300)
     rendSaveFile = true
-    rendOutputFilename = outputPath + params[1] + "_" + params[2] + "_" + params[4] + ".tif"
+    local outputFilename = params[1] + "_" + params[2] + "_" + params[4] + ".tif"
+    rendOutputFilename = outputPath + outputFilename
     renderSceneDialog.update()
     max quick render
     rendSaveFile = false
     rendOutputFilename = ""
     renderSceneDialog.update()
     renderSceneDialog.close()
+    addMessage "Рендер завершен: " color: "LimeGreen" newline: false
+    addMessage outputFilename color: "LimeGreen" style: "Bold"
 )
 
 -- Основная логика
@@ -339,6 +377,8 @@ fn main = (
     createLogsDialog()
 	
     for cam in selectedCams do (
+        if not active then return false
+
         -- Устанавливаем выбранную камеру
         changeCamera cam
         
@@ -359,7 +399,7 @@ fn main = (
         if not suns == undefined then changeSun params suns
 
         -- Рендерим
-        runRender params
+        if createTimerDialog() then runRender params
     )
 
     return true
@@ -369,7 +409,11 @@ fn main = (
 fn run = (
     local result = main()
     ForceCompleteRedraw()
-	if not result == undefined then addMessage "Скрипт закончил работу"
+	if not result == undefined then (
+        addMessage "Скрипт завершил работу"
+        complete = true
+        logs.stopButton.enabled = false
+    )
 )
 
 run()

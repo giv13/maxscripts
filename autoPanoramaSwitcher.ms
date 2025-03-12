@@ -1,11 +1,8 @@
--- .NET класс для работы с регулярными выражениями
-dotNet.loadAssembly "System.Text.RegularExpressions"
-regex = dotNetClass "System.Text.RegularExpressions.Regex"
+if not apsComplete == undefined and not apsComplete then throw("Скрипт уже запущен!")
 
 -- Путь для сохранения рендеров, активность скрипта, завершенность скрипта
-global outputPath = ""
-global active = true
-global complete = false
+global apsActive = true
+global apsComplete = false
 
 -- Окно с логами
 rollout logs "Процесс работы скрипта" (
@@ -14,13 +11,13 @@ rollout logs "Процесс работы скрипта" (
         button stopButton "Остановить скрипт" align: #left
     )
     on stopButton pressed do (
-        active = false
+        apsActive = false
         stopButton.enabled = false
         addMessage "Скрипт завершит работу после окончания рендера"
     )
     on logs oktoclose do (
-        if not complete then messageBox "Закрытие окна запрещено, пока скрипт не завершит работу" title: "Ошибка"
-        return complete
+        if not apsComplete then messageBox "Закрытие окна запрещено, пока скрипт не завершит работу" title: "Ошибка"
+        return apsComplete
     )
 )
 
@@ -35,10 +32,10 @@ fn getCameras = (
     return cams
 )
 
--- Создаем окно с выбором камеры
-fn createCameraDialog cams = (
-    rollout cameraRollout "AutoCamEnvSunBatchRender" (
-        group "Настройка параметров" (
+-- Создаем окно с выбором опций
+fn createOptionsDialog cams = (
+    rollout optionsRollout "autoPanoramaSwitcher" (
+        group "Настройка опций" (
             multilistbox cameraList "Выбери камеры:" items: (for cam in cams collect cam.name)
             label pathLabel "Укажи папку для сохранения:" align: #left
             edittext pathFolder width: 240 height: 20 across: 2 labelOnTop: true readonly: true
@@ -46,45 +43,44 @@ fn createCameraDialog cams = (
             button runButton "Запустить скрипт" across: 2 align: #left
             button hintButton "Правила именования" images: #(((getDir #ui_ln) + "IconsDark\bip_mflgraph_i.bmp"), undefined, 40, 9, 9, 10, 10, false, true) border: false align: #right
         )
+		local selectedCams = #()
         on pathButton pressed do (
             local folderDialog = dotNetObject "System.Windows.Forms.FolderBrowserDialog"
             folderDialog.Description = "Укажи папку для сохранения:"
             local dialogResult = folderDialog.showDialog()
             if (dialogResult.ToString() == "OK") then (
-                outputPath = folderDialog.selectedPath + "\\"
                 pathFolder.text = folderDialog.selectedPath
             )
         )
-		local selectedCams = #()
         on runButton pressed do (
             local sel = cameraList.selection as Array
             if sel.count == 0 then (
                 messageBox "Не выбраны камеры!" title: "Ошибка"
                 return false
             )
-            if outputPath == "" then (
+            if pathFolder.text == "" then (
                 messageBox "Не выбрана папка для сохранения!" title: "Ошибка"
                 return false
             )
-            if not doesFileExist outputPath then (
+            if not doesFileExist pathFolder.text then (
                 messageBox "Указанной папки не существует!" title: "Ошибка"
                 return false
             )
-            local cams = cameraRollout.cams
+            local cams = optionsRollout.cams
             for s in sel do append selectedCams cams[s]
-            destroyDialog cameraRollout
+            destroyDialog optionsRollout
         )
         on hintButton pressed do (
-            for control in cameraRollout.controls do control.enabled = false
-            showRules cameraRollout
+            for control in optionsRollout.controls do control.enabled = false
+            showRules optionsRollout
         )
     )
-    createDialog cameraRollout width: 300 height: 264 modal: true
-	return cameraRollout.selectedCams
+    createDialog optionsRollout width: 300 height: 264 modal: true
+	return #(optionsRollout.selectedCams, optionsRollout.pathFolder.text)
 )
 
 -- Показываем правила именования
-fn showRules cameraRollout = (
+fn showRules optionsRollout = (
     rollout rulesRollout "Правила именования" (
         group "Камеры" (
             dotNetControl camTextBox "System.Windows.Forms.RichTextBox" width: 580 height: 166
@@ -154,8 +150,8 @@ fn showRules cameraRollout = (
             addMessage "Солнце_003" textBox: textBox bullet: true newline: false
         )
     )
-    createDialog rulesRollout width: 610 height: 586 modal: true parent: cameraRollout.hwnd
-    for control in cameraRollout.controls do control.enabled = true
+    createDialog rulesRollout width: 610 height: 586 modal: true parent: optionsRollout.hwnd
+    for control in optionsRollout.controls do control.enabled = true
 )
 
 -- Создаем окно с логами
@@ -184,7 +180,7 @@ fn changeCamera cam = (
 -- Определяем параметры по названию камеры
 fn defineCameraParams cam = (
     local pattern = "P(\d+)_H(\d+)_S(\d+)(?:_([DN]))?$"
-    local match = regex.Match (toUpper cam.name) pattern
+    local match = (dotNetClass "System.Text.RegularExpressions.Regex").Match (toUpper cam.name) pattern
 	if not match.Success then (
 		addMessage "По названию камеры не определены параметры. Убедись, что тебе не требуется перестановка Environment Map и солнца или проверь название камеры!" color: "Tomato"
 		return undefined
@@ -235,7 +231,7 @@ fn changeMap params maps = (
     for map in maps do (
         local selected = 0
         for textmap in map.texmaps where not textmap == undefined do (
-            if regex.IsMatch (toUpper textmap.name) pattern then (
+            if (dotNetClass "System.Text.RegularExpressions.Regex").IsMatch (toUpper textmap.name) pattern then (
                 map.selected = selected
                 append foundMaps #(
                     map,
@@ -283,7 +279,7 @@ fn changeSun params suns = (
     local pattern = params[3] + "$"
     local foundSuns = #()
     for sun in suns do (
-        if regex.IsMatch sun.name pattern then (
+        if (dotNetClass "System.Text.RegularExpressions.Regex").IsMatch sun.name pattern then (
             append foundSuns sun
         )
     )
@@ -343,7 +339,7 @@ fn createTimerDialog = (
 )
 
 -- Рендерим
-fn runRender params = (
+fn runRender params path = (
     addMessage "Запуск рендера"
     renderSceneDialog.open()
     tif.setType(#color)
@@ -352,7 +348,7 @@ fn runRender params = (
     tif.setDPI(300)
     rendSaveFile = true
     local outputFilename = params[1] + "_" + params[2] + "_" + params[4] + ".tif"
-    rendOutputFilename = outputPath + outputFilename
+    rendOutputFilename = path + "\\" + outputFilename
     renderSceneDialog.update()
     max quick render
     rendSaveFile = false
@@ -369,15 +365,16 @@ fn main = (
     local cams = getCameras()
     if cams == undefined then return undefined
 	
-	-- Создаем окно с выбором камеры
-	local selectedCams = createCameraDialog cams
-    if selectedCams.count == 0 then return undefined
+	-- Создаем окно с выбором опций
+	local options = createOptionsDialog cams
+    if options[1].count == 0 then return undefined
+
 	
 	-- Создаем окно с логами
     createLogsDialog()
 	
-    for cam in selectedCams do (
-        if not active then return false
+    for cam in options[1] do (
+        if not apsActive then return false
 
         -- Устанавливаем выбранную камеру
         changeCamera cam
@@ -399,7 +396,7 @@ fn main = (
         if not suns == undefined then changeSun params suns
 
         -- Рендерим
-        if createTimerDialog() then runRender params
+        if createTimerDialog() then runRender params options[2]
     )
 
     return true
@@ -408,12 +405,11 @@ fn main = (
 -- Запускаем скрипт
 fn run = (
     local result = main()
-    ForceCompleteRedraw()
 	if not result == undefined then (
         addMessage "Скрипт завершил работу"
-        complete = true
         logs.stopButton.enabled = false
     )
+    apsComplete = true
 )
 
 run()

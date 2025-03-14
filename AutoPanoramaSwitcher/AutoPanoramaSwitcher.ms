@@ -1,12 +1,6 @@
-if not apsComplete == undefined and not apsComplete then throw ("Скрипт уже запущен!")
-
-global apsActive = true
-global apsComplete = false
-
 struct AutoPanoramaSwitcherStruct (
-    cams = #(),
-    selectedCams = #(),
-    path = "",
+    stopped = false,
+    completed = false,
 
     -- Добавляем сообщения в textBox
     fn addMessage message textBox color: "White" style: "Regular" bullet: false newline: true = (
@@ -15,21 +9,50 @@ struct AutoPanoramaSwitcherStruct (
         textBox.SelectionFont = dotNetObject "System.Drawing.Font" textBox.Font (getProperty (dotNetClass "System.Drawing.FontStyle") style)
         textBox.AppendText (message + (if newline then "\n" else ""))
     ),
-
-    -- Окно логов
-    logsRollout = rollout logsRollout "Процесс работы скрипта" (
-        group "" (
-            dotNetControl textBox "System.Windows.Forms.RichTextBox" width: 500 height: 200
-            button stopButton "Остановить скрипт" align: #left
+    
+    -- Окно выбора опций
+    optionsRollout = rollout optionsRollout "Auto Panorama Switcher" (
+        local owner = if owner != undefined then owner
+        local cams = if cams != undefined then cams
+        group "Настройка опций" (
+            multilistbox cameraList "Выбери камеры:" items: (for cam in cams collect cam.name)
+            label pathLabel "Укажи папку для сохранения:" align: #left
+            edittext pathFolder width: 240 height: 20 across: 2 labelOnTop: true readonly: true
+            button pathButton "..." align: #right
+            button runButton "Запустить скрипт" across: 2 align: #left
+            button hintButton "Правила именования" images: #(((getDir #ui_ln) + "IconsDark\bip_mflgraph_i.bmp"), undefined, 40, 9, 9, 10, 10, false, true) border: false align: #right
         )
-        on stopButton pressed do (
-            apsActive = false
-            stopButton.enabled = false
-            addMessage "Скрипт завершит работу после окончания рендера" textBox
+        on pathButton pressed do (
+            local folderDialog = dotNetObject "System.Windows.Forms.FolderBrowserDialog"
+            folderDialog.Description = "Укажи папку для сохранения:"
+            local dialogResult = folderDialog.showDialog()
+            if (dialogResult.ToString() == "OK") then (
+                pathFolder.text = folderDialog.selectedPath
+            )
         )
-        on logsRollout oktoclose do (
-            if not apsComplete then messageBox "Закрытие окна запрещено, пока скрипт не завершит работу" title: "Ошибка"
-            return apsComplete
+        on runButton pressed do (
+            local selectedCams = for s in (cameraList.selection as Array) collect cams[s]
+            if selectedCams.count == 0 then (
+                messageBox "Не выбраны камеры!" title: "Ошибка"
+                return false
+            )
+            if pathFolder.text == "" then (
+                messageBox "Не выбрана папка для сохранения!" title: "Ошибка"
+                return false
+            )
+            if not doesFileExist pathFolder.text then (
+                messageBox "Указанной папки не существует!" title: "Ошибка"
+                return false
+            )
+            -- Запускаем основную логику
+            owner.run selectedCams pathFolder.text
+        )
+        on hintButton pressed do (
+            -- Показываем окно правил именования
+            createDialog owner.rulesRollout width: 610 height: 586 parent: optionsRollout.hwnd
+        )
+        on optionsRollout close do (
+            if not owner.logsRollout.isDisplayed then owner.completed = true
         )
     ),
 
@@ -104,47 +127,21 @@ struct AutoPanoramaSwitcherStruct (
         )
     ),
 
-    -- Окно выбора опций
-    optionsRollout = rollout optionsRollout "Auto Panorama Switcher" (
-        group "Настройка опций" (
-            multilistbox cameraList "Выбери камеры:" items: (for cam in cams collect cam.name)
-            label pathLabel "Укажи папку для сохранения:" align: #left
-            edittext pathFolder width: 240 height: 20 across: 2 labelOnTop: true readonly: true
-            button pathButton "..." align: #right
-            button runButton "Запустить скрипт" across: 2 align: #left
-            button hintButton "Правила именования" images: #(((getDir #ui_ln) + "IconsDark\bip_mflgraph_i.bmp"), undefined, 40, 9, 9, 10, 10, false, true) border: false align: #right
+    -- Окно логов
+    logsRollout = rollout logsRollout "Процесс работы скрипта" (
+        local owner = if owner != undefined then owner
+        group "" (
+            dotNetControl textBox "System.Windows.Forms.RichTextBox" width: 500 height: 200
+            button stopButton "Остановить скрипт" align: #left
         )
-        on pathButton pressed do (
-            local folderDialog = dotNetObject "System.Windows.Forms.FolderBrowserDialog"
-            folderDialog.Description = "Укажи папку для сохранения:"
-            local dialogResult = folderDialog.showDialog()
-            if (dialogResult.ToString() == "OK") then (
-                path = folderDialog.selectedPath
-                pathFolder.text = path
-            )
+        on stopButton pressed do (
+            owner.stopped = true
+            stopButton.enabled = false
+            addMessage "Скрипт завершит работу после окончания рендера" textBox
         )
-        on runButton pressed do (
-            local sel = cameraList.selection as Array
-            if sel.count == 0 then (
-                messageBox "Не выбраны камеры!" title: "Ошибка"
-                return false
-            )
-            if path == "" then (
-                messageBox "Не выбрана папка для сохранения!" title: "Ошибка"
-                return false
-            )
-            if not doesFileExist path then (
-                messageBox "Указанной папки не существует!" title: "Ошибка"
-                return false
-            )
-            for s in sel do append selectedCams cams[s]
-            destroyDialog optionsRollout
-        )
-        on hintButton pressed do (
-            -- Показываем окно правил именования
-            for control in optionsRollout.controls do control.enabled = false
-            createDialog rulesRollout width: 610 height: 586 modal: true parent: optionsRollout.hwnd
-            for control in optionsRollout.controls do control.enabled = true
+        on logsRollout oktoclose do (
+            if not owner.completed then messageBox "Закрытие окна запрещено, пока скрипт не завершит работу" title: "Ошибка"
+            return owner.completed
         )
     ),
 
@@ -167,15 +164,12 @@ struct AutoPanoramaSwitcherStruct (
 
     -- Показываем окно логов
     fn createLogsDialog = (
+        logsRollout.owner = this
+        logsRollout.stopButton.enabled = true
         createDialog logsRollout width: 530 height: 300
         logsRollout.textBox.BackColor = (dotNetClass "System.Drawing.Color").FromArgb(-12303292)
         logsRollout.textBox.BorderStyle = (dotNetClass "System.Windows.Forms.BorderStyle").None
         logsRollout.textBox.ReadOnly = true
-    ),
-
-    -- Показываем окно выбора опций
-    fn createOptionsDialog = (
-        createDialog optionsRollout width: 300 height: 264 modal: true
     ),
 
     -- Показываем окно подтверждения рендера
@@ -185,23 +179,13 @@ struct AutoPanoramaSwitcherStruct (
         return timerRollout.confirmed or timerRollout.countdown == 0
     ),
 
-    -- Получаем камеры
-    fn getCameras = (
-        cams = for obj in objects where superClassOf obj == Camera collect obj
-        if cams.count == 0 then (
-            messageBox "В сцене нет камер!" title: "Ошибка"
-            return undefined
-        )
-        qsort cams (fn compare cam1 cam2 = if cam1.name < cam2.name then -1 else 1)
-    ),
-
     -- Устанавливаем выбранную камеру
-    fn changeCamera cam = (
+    fn changeCam cam = (
         viewport.setCamera cam
         addMessage "Установлена камера: " logsRollout.textBox color: "LimeGreen" newline: false
         addMessage cam.name logsRollout.textBox color: "LimeGreen" style: "Bold"
     ),
-
+    
     -- Определяем параметры по названию камеры
     fn defineCameraParams cam = (
         local pattern = "P(\d+)_H(\d+)_S(\d+)(?:_([DN]))?$"
@@ -342,7 +326,7 @@ struct AutoPanoramaSwitcherStruct (
     ),
 
     -- Рендерим
-    fn runRender params = (
+    fn render params path = (
         addMessage "Запуск рендера" logsRollout.textBox
         renderSceneDialog.open()
         tif.setType(#color)
@@ -374,24 +358,13 @@ struct AutoPanoramaSwitcherStruct (
         addMessage outputFilename logsRollout.textBox color: "LimeGreen" style: "Bold"
     ),
 
-    -- Основная логика
-    fn main = (
-        -- Получаем камеры
-        getCameras()
-        if cams == undefined then return undefined
-        
-        -- Показываем окно выбора опций
-        createOptionsDialog()
-        if selectedCams.count == 0 then return undefined
-        
-        -- Показываем окно логов
-        createLogsDialog()
-        
-        for cam in selectedCams do (
-            if not apsActive then return false
+    -- Обрабатываем камеры в цикле
+    fn loop cams path = (
+        for cam in cams do (
+            if stopped then return false
 
             -- Устанавливаем выбранную камеру
-            changeCamera cam
+            changeCam cam
             
             -- Определяем параметры по названию камеры
             local params = defineCameraParams cam
@@ -410,22 +383,45 @@ struct AutoPanoramaSwitcherStruct (
             if not suns == undefined then changeSun params suns
 
             -- Рендерим
-            if createTimerDialog() then runRender params
+            if createTimerDialog() then render params path
         )
-
-        return true
     ),
 
-    -- Запускаем скрипт
-    fn run = (
-        local result = main()
-        if not result == undefined then (
-            addMessage "Скрипт завершил работу" logsRollout.textBox
-            logsRollout.stopButton.enabled = false
+    -- Запускаем основную логику
+    fn run cams path = (
+        stopped = false
+        completed = false
+
+        -- Показываем окно логов
+        createLogsDialog()
+
+        -- Обрабатываем камеры в цикле
+        loop cams path
+        
+        addMessage "Скрипт завершил работу" logsRollout.textBox
+        logsRollout.stopButton.enabled = false
+        completed = true
+    ),
+
+    fn openGui = (
+        -- Получаем камеры
+        local cams = for obj in objects where superClassOf obj == Camera collect obj
+        if cams.count == 0 then (
+            messageBox "В сцене нет камер!" title: "Ошибка"
+            completed = true
+        ) else (
+            qsort cams (fn compare cam1 cam2 = if cam1.name < cam2.name then -1 else 1)
+            -- Показываем окно выбора опций
+            optionsRollout.owner = this
+            optionsRollout.cams = cams
+            createDialog optionsRollout width: 300 height: 264
         )
-        apsComplete = true
     )
 )
 
-AutoPanoramaSwitcher = AutoPanoramaSwitcherStruct()
-AutoPanoramaSwitcher.run()
+if AutoPanoramaSwitcher == undefined or AutoPanoramaSwitcher.completed then (
+    AutoPanoramaSwitcher = AutoPanoramaSwitcherStruct()
+    AutoPanoramaSwitcher.openGui()
+) else (
+    messageBox "Скрипт уже запущен!" title: "Ошибка"
+)

@@ -1,6 +1,7 @@
 struct AutoPanoramaSwitcherStruct (
     stopped = false,
     completed = false,
+    checkMode = false,
     
     -- Окно выбора опций
     optionsRollout = rollout optionsRollout "Auto Panorama Switcher" (
@@ -9,7 +10,7 @@ struct AutoPanoramaSwitcherStruct (
         group "Настройка опций" (
             multilistbox cameraList "Выбери камеры:" items: (for cam in cams collect cam.name)
             label pathLabel "Укажи папку для сохранения:" align: #left
-            edittext pathFolder width: 240 height: 20 across: 2 labelOnTop: true readonly: true
+            edittext pathFolder width: 240 height: 20 across: 2 labelOnTop: true
             button pathButton "..." align: #right
             button runButton "Запустить скрипт" across: 2 align: #left
             button hintButton "Правила именования" images: #(((getDir #ui_ln) + "IconsDark\bip_mflgraph_i.bmp"), undefined, 40, 9, 9, 10, 10, false, true) border: false align: #right
@@ -29,10 +30,12 @@ struct AutoPanoramaSwitcherStruct (
                 return false
             )
             if pathFolder.text == "" then (
-                messageBox "Не выбрана папка для сохранения!" title: "Ошибка"
-                return false
+                owner.checkMode = queryBox "Не выбрана папка для сохранения! Скрипт отработает в режиме проверки!" title: "Подтверди действие"
+                if not owner.checkMode then return false
+            ) else (
+                owner.checkMode = false
             )
-            if not doesFileExist pathFolder.text then (
+            if not owner.checkMode and not doesFileExist pathFolder.text then (
                 messageBox "Указанной папки не существует!" title: "Ошибка"
                 return false
             )
@@ -197,8 +200,8 @@ struct AutoPanoramaSwitcherStruct (
 
     -- Устанавливаем выбранную камеру
     fn changeCam cam = (
-        viewport.setCamera cam
-        addLogLine ("Установлена камера: " + cam.name)
+        if not checkMode then viewport.setCamera cam
+        addLogLine ((if checkMode then "Проверка камеры" else "Установлена камера") + ": " + cam.name)
     ),
     
     -- Определяем параметры по названию камеры
@@ -260,7 +263,7 @@ struct AutoPanoramaSwitcherStruct (
         )
         if foundMaps.count == 0 then (
             addLogLine "По заданным параметрам карта не найдена" type: "error"
-            addLogLine "Карта не установлена" type: "error"
+            if not checkMode then addLogLine "Карта не установлена" type: "error"
             return undefined
         )
         if foundMaps.count > 1 then (
@@ -268,11 +271,11 @@ struct AutoPanoramaSwitcherStruct (
             for i = 1 to foundMaps.count do (
                 addLogLine (foundMaps[i][1].name + " (" + foundMaps[i][2] + ")") type: "error" prefix: "" postfix: (if i < foundMaps.count then ", " else "\n")
             )
-            addLogLine "Карта не установлена" type: "error"
+            if not checkMode then addLogLine "Карта не установлена" type: "error"
             return undefined
         )
-        environmentmap = foundMaps[1][1]
-        addLogLine ("В Environment Map установлена карта: " + foundMaps[1][1].name + " (" + foundMaps[1][2] + ")")
+        if not checkMode then environmentmap = foundMaps[1][1]
+        addLogLine ((if checkMode then "Найдена" else "В Environment Map установлена") + " карта: " + foundMaps[1][1].name + " (" + foundMaps[1][2] + ")")
         return foundMaps[1][1]
     ),
 
@@ -301,7 +304,7 @@ struct AutoPanoramaSwitcherStruct (
         )
         if foundSuns.count == 0 then (
             addLogLine "По заданным параметрам солнце не найдено" type: "error"
-            addLogLine "Солнце не установлено" type: "error"
+            if not checkMode then addLogLine "Солнце не установлено" type: "error"
             return undefined
         )
         if foundSuns.count > 1 then (
@@ -309,7 +312,7 @@ struct AutoPanoramaSwitcherStruct (
             for i = 1 to foundSuns.count do (
                 addLogLine foundSuns[i].name type: "error" prefix: "" postfix: (if i < foundSuns.count then ", " else "\n")
             )
-            addLogLine "Солнце не установлено" type: "error"
+            if not checkMode then addLogLine "Солнце не установлено" type: "error"
             return undefined
         )
         local extraSuns = #()
@@ -317,11 +320,11 @@ struct AutoPanoramaSwitcherStruct (
             if sun.isFrozen then (
                 append extraSuns sun
             )
-            sun.isHidden = (sun != foundSuns[1] and not sun.isFrozen)
+            if not checkMode then sun.isHidden = (sun != foundSuns[1] and not sun.isFrozen)
         )
-        addLogLine ("Установлено солнце: " + foundSuns[1].name)
+        addLogLine ((if checkMode then "Найдено" else "Установлено") + " солнце: " + foundSuns[1].name)
         if not extraSuns.count == 0 then (
-            addLogLine "Установлены фейковые солнца: " postfix: ""
+            addLogLine ((if checkMode then "Найдены" else "Установлены") + " фейковые солнца: ") postfix: ""
             local extraSunNames = ""
             for i = 1 to extraSuns.count do (
                 addLogLine extraSuns[1].name prefix: "" postfix: (if i < extraSuns.count then ", " else "\n")
@@ -391,7 +394,7 @@ struct AutoPanoramaSwitcherStruct (
             if not suns == undefined then changeSun params suns
 
             -- Рендерим
-            if createTimerDialog() then render params path
+            if not checkMode and createTimerDialog() then render params path
 
             logsRollout.progress.value = 100.0 / cams.count * i
         )
@@ -405,7 +408,7 @@ struct AutoPanoramaSwitcherStruct (
         -- Показываем окно логов
         createLogsDialog()
         addLogLine "Скрипт начал работу"
-        addLogLine ("Выбрано камер: " + cams.count as String + "; Папка для сохранения: " + path)
+        addLogLine ("Выбрано камер: " + cams.count as String + "; " + (if checkMode then "Плагин работает в режиме проверки" else "Папка для сохранения: " + path)) type: (if checkMode then "warn" else "info")
 
         -- Обрабатываем камеры в цикле
         loop cams path

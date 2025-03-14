@@ -1,14 +1,6 @@
 struct AutoPanoramaSwitcherStruct (
     stopped = false,
     completed = false,
-
-    -- Добавляем сообщения в textBox
-    fn addMessage message textBox color: "White" style: "Regular" bullet: false newline: true = (
-        textBox.SelectionColor = getProperty (dotNetClass "System.Drawing.Color") color
-        if bullet then textBox.AppendText "  •  "
-        textBox.SelectionFont = dotNetObject "System.Drawing.Font" textBox.Font (getProperty (dotNetClass "System.Drawing.FontStyle") style)
-        textBox.AppendText (message + (if newline then "\n" else ""))
-    ),
     
     -- Окно выбора опций
     optionsRollout = rollout optionsRollout "Auto Panorama Switcher" (
@@ -67,8 +59,14 @@ struct AutoPanoramaSwitcherStruct (
         group "Солнца" (
             dotNetControl sunTextBox "System.Windows.Forms.RichTextBox" width: 580 height: 179
         )
+        local textBox
+        fn addLine message style: "Regular" bullet: false newline: true = (
+            textBox.SelectionColor = (dotNetClass "System.Drawing.Color").White
+            if bullet then textBox.AppendText "  •  "
+            textBox.SelectionFont = dotNetObject "System.Drawing.Font" textBox.Font (getProperty (dotNetClass "System.Drawing.FontStyle") style)
+            textBox.AppendText (message + (if newline then "\n" else ""))
+        )
         on rulesRollout open do (
-            local textBox
             for textBox in #("camTextBox", "mapTextBox", "sunTextBox") do (
                 textBox = getProperty rulesRollout textBox
                 textBox.BackColor = (dotNetClass "System.Drawing.Color").FromArgb(-12303292)
@@ -76,73 +74,92 @@ struct AutoPanoramaSwitcherStruct (
                 textBox.ReadOnly = true
             )
             textBox = rulesRollout.camTextBox
-            addMessage "Название камеры должно формироваться следующим образом: " textBox newline: false
-            addMessage "*_p(число)_h(число)_s(число)_(D|N)" textBox style: "Bold" newline: false
-            addMessage ", где:" textBox
-            addMessage "*" textBox style: "Bold" bullet: true newline: false
-            addMessage " - произвольная часть названия, необязательный параметр" textBox
-            addMessage "p(число)" textBox style: "Bold" bullet: true newline: false
-            addMessage " - номер панорамы, обязательный параметр" textBox
-            addMessage "h(число)" textBox style: "Bold" bullet: true newline: false
-            addMessage " - высота съемки, обязательный параметр" textBox
-            addMessage "s(число)" textBox style: "Bold" bullet: true newline: false
-            addMessage " - номер солнца, обязательный параметр" textBox
-            addMessage "(D|N)" textBox style: "Bold" bullet: true newline: false
-            addMessage " - время суток, необязательный параметр, по умолчанию: D" textBox
-            addMessage "\nПримеры правильных названий:" textBox
-            addMessage "p01_h025_s001" textBox bullet: true
-            addMessage "Cam_p02_h050_s002" textBox bullet: true
-            addMessage "Camera_p03_h100_s003_D" textBox bullet: true
-            addMessage "Камера_p04_h200_s004_N" textBox bullet: true newline: false
+            addLine "Название камеры должно формироваться следующим образом: " newline: false
+            addLine "*_p(число)_h(число)_s(число)_(D|N)" style: "Bold" newline: false
+            addLine ", где:"
+            addLine "*" style: "Bold" bullet: true newline: false
+            addLine " - произвольная часть названия, необязательный параметр"
+            addLine "p(число)" style: "Bold" bullet: true newline: false
+            addLine " - номер панорамы, обязательный параметр"
+            addLine "h(число)" style: "Bold" bullet: true newline: false
+            addLine " - высота съемки, обязательный параметр"
+            addLine "s(число)" style: "Bold" bullet: true newline: false
+            addLine " - номер солнца, обязательный параметр"
+            addLine "(D|N)" style: "Bold" bullet: true newline: false
+            addLine " - время суток, необязательный параметр, по умолчанию: D"
+            addLine "\nПримеры правильных названий:"
+            addLine "p01_h025_s001" bullet: true
+            addLine "Cam_p02_h050_s002" bullet: true
+            addLine "Camera_p03_h100_s003_D" bullet: true
+            addLine "Камера_p04_h200_s004_N" bullet: true newline: false
             textBox = rulesRollout.mapTextBox
-            addMessage "Название карты должно формироваться следующим образом: " textBox newline: false
-            addMessage "*_p(число)_h(число)_(D|N)" textBox style: "Bold" newline: false
-            addMessage ", где:" textBox
-            addMessage "*" textBox style: "Bold" bullet: true newline: false
-            addMessage " - произвольная часть названий, необязательный параметр" textBox
-            addMessage "p(число)" textBox style: "Bold" bullet: true newline: false
-            addMessage " - номер панорамы, обязательный параметр" textBox
-            addMessage "h(число)" textBox style: "Bold" bullet: true newline: false
-            addMessage " - высота съемки, обязательный параметр" textBox
-            addMessage "(D|N)" textBox style: "Bold" bullet: true newline: false
-            addMessage " - время суток, необязательный параметр, по умолчанию: D" textBox
-            addMessage "\nПримеры правильных названий:" textBox
-            addMessage "p01_h025" textBox bullet: true
-            addMessage "Map_p02_h050_D" textBox bullet: true
-            addMessage "Карта_p03_h100_N" textBox bullet: true newline: false
-            textBox = rulesRollout.sunTextBox
-            addMessage "Название солнца должно формироваться следующим образом: " textBox newline: false
-            addMessage "*(число)" textBox style: "Bold" newline: false
-            addMessage ", где:" textBox
-            addMessage "*" textBox style: "Bold" bullet: true newline: false
-            addMessage " - произвольная часть названия, необязательный параметр" textBox
-            addMessage "(число)" textBox style: "Bold" bullet: true newline: false
-            addMessage " - произвольный номер солнца, обязательный параметр" textBox
-            addMessage "\nТо есть солнца можно именовать как угодно, подойдут даже названия по умолчанию. Главное, чтобы в конце названиия было число. Это число указывается в названии камеры для связи." textBox
-            addMessage "\nЕсли есть необходимость в фейковых солнцах, такие солнца нужно замоморозить (галочка Frozen)." textBox
-            addMessage "\nПримеры правильных названий:" textBox
-            addMessage "Corona Sun001" textBox bullet: true
-            addMessage "Sun_002" textBox bullet: true
-            addMessage "Солнце_003" textBox bullet: true newline: false
+            addLine "Название карты должно формироваться следующим образом: " newline: false
+            addLine "*_p(число)_h(число)_(D|N)" style: "Bold" newline: false
+            addLine ", где:"
+            addLine "*" style: "Bold" bullet: true newline: false
+            addLine " - произвольная часть названий, необязательный параметр"
+            addLine "p(число)" style: "Bold" bullet: true newline: false
+            addLine " - номер панорамы, обязательный параметр"
+            addLine "h(число)" style: "Bold" bullet: true newline: false
+            addLine " - высота съемки, обязательный параметр"
+            addLine "(D|N)" style: "Bold" bullet: true newline: false
+            addLine " - время суток, необязательный параметр, по умолчанию: D"
+            addLine "\nПримеры правильных названий:"
+            addLine "p01_h025" bullet: true
+            addLine "Map_p02_h050_D" bullet: true
+            addLine "Карта_p03_h100_N" bullet: true newline: false
+            textBox= rulesRollout.sunTextBox
+            addLine "Название солнца должно формироваться следующим образом: " newline: false
+            addLine "*(число)" style: "Bold" newline: false
+            addLine ", где:"
+            addLine "*" style: "Bold" bullet: true newline: false
+            addLine " - произвольная часть названия, необязательный параметр"
+            addLine "(число)" style: "Bold" bullet: true newline: false
+            addLine " - произвольный номер солнца, обязательный параметр"
+            addLine "\nТо есть солнца можно именовать как угодно, подойдут даже названия по умолчанию. Главное, чтобы в конце названиия было число. Это число указывается в названии камеры для связи."
+            addLine "\nЕсли есть необходимость в фейковых солнцах, такие солнца нужно замоморозить (галочка Frozen)."
+            addLine "\nПримеры правильных названий:"
+            addLine "Corona Sun001" bullet: true
+            addLine "Sun_002" bullet: true
+            addLine "Солнце_003" bullet: true newline: false
         )
     ),
 
     -- Окно логов
     logsRollout = rollout logsRollout "Процесс работы скрипта" (
         local owner = if owner != undefined then owner
-        group "" (
-            dotNetControl textBox "System.Windows.Forms.RichTextBox" width: 500 height: 200
-            button stopButton "Остановить скрипт" align: #left
-        )
+        button stopButton "Остановить скрипт" width: 120 pos: [15, 10]
+        progressBar progress color: (color 0 200 0) width: 635 pos: [150, 15]
+        dotNetControl textBox "System.Windows.Forms.RichTextBox" width: 800 height: 360 pos: [0, 40]
         on stopButton pressed do (
             owner.stopped = true
             stopButton.enabled = false
-            addMessage "Скрипт завершит работу после окончания рендера" textBox
+            owner.addLogLine "Скрипт остановлен пользователем и завершит работу после окончания рендера" type: "warn"
+        )
+        on logsRollout open do (
+            textBox.ReadOnly = true
         )
         on logsRollout oktoclose do (
             if not owner.completed then messageBox "Закрытие окна запрещено, пока скрипт не завершит работу" title: "Ошибка"
             return owner.completed
         )
+    ),
+
+    -- Добавляем строку в textBox логов
+    fn addLogLine message type: "info" prefix: undefined postfix: "\n" = (
+        if prefix == undefined then prefix = (toUpper type) + ": "
+        if type == "warn" then (
+            logsRollout.textBox.SelectionColor = (dotNetClass "System.Drawing.Color").Orange
+        ) else if type == "error" then (
+            logsRollout.textBox.SelectionColor = (dotNetClass "System.Drawing.Color").Red
+        ) else if type == "success" then (
+            logsRollout.textBox.SelectionColor = (dotNetClass "System.Drawing.Color").Green
+        ) else (
+            logsRollout.textBox.SelectionColor = (dotNetClass "System.Drawing.Color").Blue
+        )
+        logsRollout.textBox.SelectionFont = dotNetObject "System.Drawing.Font" editorFont editorFontSize
+        logsRollout.textBox.AppendText (prefix + message + postfix)
+        logsRollout.textBox.ScrollToCaret()
     ),
 
     -- Окно подтверждения рендера
@@ -166,24 +183,22 @@ struct AutoPanoramaSwitcherStruct (
     fn createLogsDialog = (
         logsRollout.owner = this
         logsRollout.stopButton.enabled = true
-        createDialog logsRollout width: 530 height: 300
-        logsRollout.textBox.BackColor = (dotNetClass "System.Drawing.Color").FromArgb(-12303292)
-        logsRollout.textBox.BorderStyle = (dotNetClass "System.Windows.Forms.BorderStyle").None
-        logsRollout.textBox.ReadOnly = true
+        logsRollout.progress.value = 0
+        createDialog logsRollout width: 800 height: 400
+        logsRollout.textBox.Clear()
     ),
 
     -- Показываем окно подтверждения рендера
     fn createTimerDialog = (
         createDialog timerRollout width: 50 height: 0 modal: true parent: logsRollout.hwnd
-        if not timerRollout.confirmed and not timerRollout.countdown == 0 then addMessage "Рендер отменен пользователем" logsRollout.textBox
+        if not timerRollout.confirmed and not timerRollout.countdown == 0 then addLogLine "Рендер отменен пользователем" type: "warn"
         return timerRollout.confirmed or timerRollout.countdown == 0
     ),
 
     -- Устанавливаем выбранную камеру
     fn changeCam cam = (
         viewport.setCamera cam
-        addMessage "Установлена камера: " logsRollout.textBox color: "LimeGreen" newline: false
-        addMessage cam.name logsRollout.textBox color: "LimeGreen" style: "Bold"
+        addLogLine ("Установлена камера: " + cam.name)
     ),
     
     -- Определяем параметры по названию камеры
@@ -191,7 +206,8 @@ struct AutoPanoramaSwitcherStruct (
         local pattern = "P(\d+)_H(\d+)_S(\d+)(?:_([DN]))?$"
         local match = (dotNetClass "System.Text.RegularExpressions.Regex").Match (toUpper cam.name) pattern
         if not match.Success then (
-            addMessage "По названию камеры не определены параметры. Убедись, что тебе не требуется перестановка Environment Map и солнца или проверь название камеры!" logsRollout.textBox color: "Tomato"
+            addLogLine "По названию камеры не определены параметры" type: "error"
+            addLogLine "Убедись, что тебе не требуется перестановка Environment Map и солнца или проверь название камеры" type: "error"
             return undefined
         )
         local params = #()
@@ -199,15 +215,7 @@ struct AutoPanoramaSwitcherStruct (
             params[i] = match.Groups.item[i].value
         )
         if params[4] == "" then params[4] = "D"
-        addMessage ("По названию камеры определены параметры:") logsRollout.textBox
-        addMessage "Панорама: " logsRollout.textBox bullet: true newline: false
-        addMessage params[1] logsRollout.textBox style: "Bold"
-        addMessage "Высота: " logsRollout.textBox bullet: true newline: false
-        addMessage params[2] logsRollout.textBox style: "Bold"
-        addMessage "Солнце: " logsRollout.textBox bullet: true newline: false
-        addMessage params[3] logsRollout.textBox style: "Bold"
-        addMessage "День/ночь: " logsRollout.textBox bullet: true newline: false
-        addMessage params[4] logsRollout.textBox style: "Bold"
+        addLogLine ("По названию камеры определены параметры: Панорама - " + params[1] + "; Высота - " + params[2] + "; Солнце - " + params[3] + "; День/ночь - " + params[4])
         return params
     ),
 
@@ -227,7 +235,7 @@ struct AutoPanoramaSwitcherStruct (
             )
         )
         if maps.count == 0 then (
-            addMessage ("Карты CoronaSelect не найдены, перестановка карты не требуется") logsRollout.textBox
+            addLogLine "Карты CoronaSelect не найдены, перестановка карты не требуется" type: "warn"
             return undefined
         )
         return maps
@@ -251,21 +259,20 @@ struct AutoPanoramaSwitcherStruct (
             )
         )
         if foundMaps.count == 0 then (
-            addMessage "По заданным параметрам карта не найдена" logsRollout.textBox color: "Tomato"
-            addMessage "Карта не установлена" logsRollout.textBox color: "Tomato" style: "Bold"
+            addLogLine "По заданным параметрам карта не найдена" type: "error"
+            addLogLine "Карта не установлена" type: "error"
             return undefined
         )
         if foundMaps.count > 1 then (
-            addMessage "По заданным параметрам найдено несколько карт:" logsRollout.textBox color: "Tomato"
-            for map in foundMaps do (
-                addMessage (map[1].name + " (" + map[2] + ")") logsRollout.textBox color: "Tomato" bullet: true
+            addLogLine "По заданным параметрам найдено несколько карт: " type: "error" postfix: ""
+            for i = 1 to foundMaps.count do (
+                addLogLine (foundMaps[i][1].name + " (" + foundMaps[i][2] + ")") type: "error" prefix: "" postfix: (if i < foundMaps.count then ", " else "\n")
             )
-            addMessage "Карта не установлена" logsRollout.textBox color: "Tomato" style: "Bold"
+            addLogLine "Карта не установлена" type: "error"
             return undefined
         )
         environmentmap = foundMaps[1][1]
-        addMessage "В Environment Map установлена карта: " logsRollout.textBox color: "LimeGreen" newline: false
-        addMessage (foundMaps[1][1].name + " (" + foundMaps[1][2] + ")") logsRollout.textBox color: "LimeGreen" style: "Bold"
+        addLogLine ("В Environment Map установлена карта: " + foundMaps[1][1].name + " (" + foundMaps[1][2] + ")")
         return foundMaps[1][1]
     ),
 
@@ -273,11 +280,11 @@ struct AutoPanoramaSwitcherStruct (
     fn getSuns = (
         local suns = for obj in objects where classOf obj == CoronaSun collect obj
         if suns.count == 0 then (
-            addMessage "Солнца не найдены, перестановка солнца не требуется" logsRollout.textBox
+            addLogLine "Солнца не найдены, перестановка солнца не требуется" type: "warn"
             return undefined
         )
         if suns.count == 1 then (
-            addMessage ("Найдено одно солнце, перестановка солнца не требуется") logsRollout.textBox
+            addLogLine "Найдено одно солнце, перестановка солнца не требуется" type: "warn"
             return undefined
         )
         return suns
@@ -293,16 +300,16 @@ struct AutoPanoramaSwitcherStruct (
             )
         )
         if foundSuns.count == 0 then (
-            addMessage "По заданным параметрам солнце не найдено" logsRollout.textBox color: "Tomato"
-            addMessage "Солнце не установлено" logsRollout.textBox color: "Tomato" style: "Bold"
+            addLogLine "По заданным параметрам солнце не найдено" type: "error"
+            addLogLine "Солнце не установлено" type: "error"
             return undefined
         )
         if foundSuns.count > 1 then (
-            addMessage "По заданным параметрам найдено несколько солнц:" logsRollout.textBox color: "Tomato"
-            for sun in foundSuns do (
-                addMessage sun.name logsRollout.textBox color: "Tomato" bullet: true
+            addLogLine "По заданным параметрам найдено несколько солнц: " type: "error" postfix: ""
+            for i = 1 to foundSuns.count do (
+                addLogLine foundSuns[i].name type: "error" prefix: "" postfix: (if i < foundSuns.count then ", " else "\n")
             )
-            addMessage "Солнце не установлено" logsRollout.textBox color: "Tomato" style: "Bold"
+            addLogLine "Солнце не установлено" type: "error"
             return undefined
         )
         local extraSuns = #()
@@ -312,14 +319,12 @@ struct AutoPanoramaSwitcherStruct (
             )
             sun.isHidden = (sun != foundSuns[1] and not sun.isFrozen)
         )
-        addMessage "Установлено солнце: " logsRollout.textBox color: "LimeGreen" newline: false
-        addMessage foundSuns[1].name logsRollout.textBox color: "LimeGreen" style: "Bold"
+        addLogLine ("Установлено солнце: " + foundSuns[1].name)
         if not extraSuns.count == 0 then (
-            addMessage "Установлены фейковые солнца: " logsRollout.textBox color: "LimeGreen" newline: false
+            addLogLine "Установлены фейковые солнца: " postfix: ""
             local extraSunNames = ""
             for i = 1 to extraSuns.count do (
-                addMessage extraSuns[1].name logsRollout.textBox color: "LimeGreen" style: "Bold" newline: false
-                addMessage (if i < extraSuns.count then ", " else "\n") logsRollout.textBox color: "LimeGreen" newline: false
+                addLogLine extraSuns[1].name prefix: "" postfix: (if i < extraSuns.count then ", " else "\n")
             )
         )
         return foundSuns[1]
@@ -327,7 +332,7 @@ struct AutoPanoramaSwitcherStruct (
 
     -- Рендерим
     fn render params path = (
-        addMessage "Запуск рендера" logsRollout.textBox
+        addLogLine "Рендер запущен"
         renderSceneDialog.open()
         tif.setType(#color)
         tif.setCompression(#none)
@@ -354,20 +359,23 @@ struct AutoPanoramaSwitcherStruct (
         rendOutputFilename = ""
         renderSceneDialog.update()
         renderSceneDialog.close()
-        addMessage "Рендер завершен: " logsRollout.textBox color: "LimeGreen" newline: false
-        addMessage outputFilename logsRollout.textBox color: "LimeGreen" style: "Bold"
+        addLogLine ("Рендер завершен: " + outputFilename) type: "success"
     ),
 
     -- Обрабатываем камеры в цикле
     fn loop cams path = (
-        for cam in cams do (
-            if stopped then return false
+        for i = 1 to cams.count do (
+            if stopped then (
+                logsRollout.progress.value = 100
+                return false
+            )
+            addLogLine (i as String + "/" + cams.count as String + " -----------------------------------------------") prefix: ""
 
             -- Устанавливаем выбранную камеру
-            changeCam cam
+            changeCam cams[i]
             
             -- Определяем параметры по названию камеры
-            local params = defineCameraParams cam
+            local params = defineCameraParams cams[i]
             if params == undefined then return false
 
             -- Получаем карты
@@ -384,6 +392,8 @@ struct AutoPanoramaSwitcherStruct (
 
             -- Рендерим
             if createTimerDialog() then render params path
+
+            logsRollout.progress.value = 100.0 / cams.count * i
         )
     ),
 
@@ -394,11 +404,14 @@ struct AutoPanoramaSwitcherStruct (
 
         -- Показываем окно логов
         createLogsDialog()
+        addLogLine "Скрипт начал работу"
+        addLogLine ("Выбрано камер: " + cams.count as String + "; Папка для сохранения: " + path)
 
         -- Обрабатываем камеры в цикле
         loop cams path
         
-        addMessage "Скрипт завершил работу" logsRollout.textBox
+        addLogLine "--------------------------------------------------" prefix: ""
+        addLogLine "Скрипт завершил работу"
         logsRollout.stopButton.enabled = false
         completed = true
     ),

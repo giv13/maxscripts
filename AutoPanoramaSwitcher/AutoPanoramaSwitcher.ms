@@ -194,7 +194,14 @@ struct AutoPanoramaSwitcherStruct (
     -- Показываем окно подтверждения рендера
     fn createTimerDialog = (
         createDialog timerRollout width: 50 height: 0 modal: true parent: logsRollout.hwnd
-        if not timerRollout.confirmed and not timerRollout.countdown == 0 then addLogLine "Рендер отменен пользователем" type: "warn"
+        if not timerRollout.confirmed and not timerRollout.countdown == 0 then (
+            addLogLine "Рендер отменен пользователем" type: "warn"
+            if (queryBox ("Рендер отменен. Остановить скрипт?") title: "Остановить скрипт?" parent: logsRollout.hwnd) then (
+                stopped = true
+                logsRollout.stopButton.enabled = false
+                addLogLine "Скрипт остановлен пользователем" type: "warn"
+            )
+        )
         return timerRollout.confirmed or timerRollout.countdown == 0
     ),
 
@@ -413,6 +420,7 @@ struct AutoPanoramaSwitcherStruct (
         -- Обрабатываем камеры в цикле
         loop cams path
         
+        if not checkMode then shellLaunch "explorer.exe" path
         addLogLine "--------------------------------------------------" prefix: ""
         addLogLine "Скрипт завершил работу"
         logsRollout.stopButton.enabled = false

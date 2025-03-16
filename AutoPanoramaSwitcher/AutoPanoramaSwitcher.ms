@@ -44,7 +44,7 @@ struct AutoPanoramaSwitcherStruct (
         )
         on hintButton pressed do (
             -- Показываем окно правил именования
-            createDialog owner.rulesRollout width: 610 height: 586 parent: optionsRollout.hwnd
+            createDialog owner.rulesRollout width: 610 height: 756 parent: optionsRollout.hwnd
         )
         on optionsRollout close do (
             if not owner.logsRollout.isDisplayed then owner.completed = true
@@ -59,6 +59,9 @@ struct AutoPanoramaSwitcherStruct (
         group "Карты" (
             dotNetControl mapTextBox "System.Windows.Forms.RichTextBox" width: 580 height: 140
         )
+        group "Материалы окон" (
+            dotNetControl matTextBox "System.Windows.Forms.RichTextBox" width: 580 height: 140
+        )
         group "Солнца" (
             dotNetControl sunTextBox "System.Windows.Forms.RichTextBox" width: 580 height: 179
         )
@@ -70,7 +73,7 @@ struct AutoPanoramaSwitcherStruct (
             textBox.AppendText (message + (if newline then "\n" else ""))
         )
         on rulesRollout open do (
-            for textBox in #("camTextBox", "mapTextBox", "sunTextBox") do (
+            for textBox in #("camTextBox", "mapTextBox", "matTextBox", "sunTextBox") do (
                 textBox = getProperty rulesRollout textBox
                 textBox.BackColor = (dotNetClass "System.Drawing.Color").FromArgb(-12303292)
                 textBox.BorderStyle = (dotNetClass "System.Windows.Forms.BorderStyle").None
@@ -89,7 +92,7 @@ struct AutoPanoramaSwitcherStruct (
             addLine "s(число)" style: "Bold" bullet: true newline: false
             addLine " - номер солнца, обязательный параметр"
             addLine "(D|N)" style: "Bold" bullet: true newline: false
-            addLine " - время суток, необязательный параметр, по умолчанию: D"
+            addLine " - время суток, обязательный параметр"
             addLine "\nПримеры правильных названий:"
             addLine "p01_h025_s001" bullet: true
             addLine "Cam_p02_h050_s002" bullet: true
@@ -100,17 +103,31 @@ struct AutoPanoramaSwitcherStruct (
             addLine "*_p(число)_h(число)_(D|N)" style: "Bold" newline: false
             addLine ", где:"
             addLine "*" style: "Bold" bullet: true newline: false
-            addLine " - произвольная часть названий, необязательный параметр"
+            addLine " - произвольная часть названия, необязательный параметр"
             addLine "p(число)" style: "Bold" bullet: true newline: false
             addLine " - номер панорамы, обязательный параметр"
             addLine "h(число)" style: "Bold" bullet: true newline: false
             addLine " - высота съемки, обязательный параметр"
             addLine "(D|N)" style: "Bold" bullet: true newline: false
-            addLine " - время суток, необязательный параметр, по умолчанию: D"
+            addLine " - время суток, обязательный параметр"
             addLine "\nПримеры правильных названий:"
             addLine "p01_h025" bullet: true
             addLine "Map_p02_h050_D" bullet: true
             addLine "Карта_p03_h100_N" bullet: true newline: false
+            textBox = rulesRollout.matTextBox
+            addLine "Название материала окон должно формироваться следующим образом: " newline: false
+            addLine "*_(D|N)" style: "Bold" newline: false
+            addLine ", где:"
+            addLine "*" style: "Bold" bullet: true newline: false
+            addLine " - произвольная часть названия, обязательный параметр"
+            addLine "(D|N)" style: "Bold" bullet: true newline: false
+            addLine " - время суток, обязательный параметр"
+            addLine "\nПри этом в сцене обязательно должен быть слой, название которого совпадает с произвольной частью названия материала окон (название материала окон без части " newline: false
+            addLine "_(D|N)" style: "Bold" newline: false
+            addLine ")."
+            addLine "\nПримеры правильных названий:"
+            addLine "Материалы окон: appartemnts_D и appartments_N; Слой: appartments" bullet: true
+            addLine "Материалы окон: offices_D и offices_N; Слой: offices" bullet: true newline: false
             textBox= rulesRollout.sunTextBox
             addLine "Название солнца должно формироваться следующим образом: " newline: false
             addLine "*(число)" style: "Bold" newline: false
@@ -132,8 +149,8 @@ struct AutoPanoramaSwitcherStruct (
     logsRollout = rollout logsRollout "Процесс работы скрипта" (
         local owner = if owner != undefined then owner
         button stopButton "Остановить скрипт" width: 120 pos: [15, 10]
-        progressBar progress color: (color 0 200 0) width: 635 pos: [150, 15]
-        dotNetControl textBox "System.Windows.Forms.RichTextBox" width: 800 height: 360 pos: [0, 40]
+        progressBar progress color: (color 0 200 0) width: 695 pos: [150, 14]
+        dotNetControl textBox "System.Windows.Forms.RichTextBox" width: 860 height: 360 pos: [0, 40]
         on stopButton pressed do (
             owner.stopped = true
             stopButton.enabled = false
@@ -150,7 +167,11 @@ struct AutoPanoramaSwitcherStruct (
 
     -- Добавляем строку в textBox логов
     fn addLogLine message type: "info" prefix: undefined postfix: "\n" = (
-        if prefix == undefined then prefix = (toUpper type) + ": "
+        if prefix == undefined then (
+            local time = getLocalTime()
+            time = formattedPrint test[4] format: "02d" + "." + formattedPrint test[2] format: "02d" + " " + formattedPrint test[5] format: "02d" + ":" + formattedPrint test[6] format: "02d"
+            prefix = "[" + time + "] " + (toUpper type) + ": "
+        )
         if type == "warn" then (
             logsRollout.textBox.SelectionColor = (dotNetClass "System.Drawing.Color").Orange
         ) else if type == "error" then (
@@ -187,7 +208,7 @@ struct AutoPanoramaSwitcherStruct (
         logsRollout.owner = this
         logsRollout.stopButton.enabled = true
         logsRollout.progress.value = 0
-        createDialog logsRollout width: 800 height: 400
+        createDialog logsRollout width: 860 height: 400
         logsRollout.textBox.Clear()
     ),
 
@@ -213,7 +234,7 @@ struct AutoPanoramaSwitcherStruct (
     
     -- Определяем параметры по названию камеры
     fn defineCameraParams cam = (
-        local pattern = "P(\d+)_H(\d+)_S(\d+)(?:_([DN]))?$"
+        local pattern = "P(\d+)_H(\d+)_S(\d+)_([DN])$"
         local match = (dotNetClass "System.Text.RegularExpressions.Regex").Match (toUpper cam.name) pattern
         if not match.Success then (
             addLogLine "По названию камеры не определены параметры" type: "error"
@@ -229,31 +250,9 @@ struct AutoPanoramaSwitcherStruct (
         return params
     ),
 
-    -- Получаем карты
-    fn getMaps = (
-        local maps = #()
-        if sme.GetNumViews() == 0 and not sme.IsOpen() then (
-            sme.Open()
-            sme.Close()
-        )
-        for i = 1 to sme.GetNumViews() do (
-            local view = sme.GetView i
-            for j = 1 to view.GetNumNodes() do (
-                local node = view.GetNode j
-                local map = node.reference
-                if ClassOf map == CoronaSelect then append maps map
-            )
-        )
-        if maps.count == 0 then (
-            addLogLine "Карты CoronaSelect не найдены, перестановка карты не требуется" type: "warn"
-            return undefined
-        )
-        return maps
-    ),
-
     -- Устанавливаем карту
     fn changeMap params maps = (
-        local pattern = "P" + params[1] + "_H" + params[2] + (if params[4] == "D" then "(?:_" + params[4] + ")?" else "_" + params[4]) + "$"
+        local pattern = "P" + params[1] + "_H" + params[2] + "_" + params[4] + "$"
         local foundMaps = #()
         for map in maps do (
             local selected = 0
@@ -271,36 +270,74 @@ struct AutoPanoramaSwitcherStruct (
         if foundMaps.count == 0 then (
             addLogLine "По заданным параметрам карта не найдена" type: "error"
             if not checkMode then addLogLine "Карта не установлена" type: "error"
-            return undefined
-        )
-        if foundMaps.count > 1 then (
+        ) else if foundMaps.count > 1 then (
             addLogLine "По заданным параметрам найдено несколько карт: " type: "error" postfix: ""
             for i = 1 to foundMaps.count do (
                 addLogLine (foundMaps[i][1].name + " (" + foundMaps[i][2] + ")") type: "error" prefix: "" postfix: (if i < foundMaps.count then ", " else "\n")
             )
             if not checkMode then addLogLine "Карта не установлена" type: "error"
-            return undefined
+        ) else (
+            if not checkMode then environmentmap = foundMaps[1][1]
+            addLogLine ((if checkMode then "Найдена" else "В Environment Map установлена") + " карта: " + foundMaps[1][1].name + " (" + foundMaps[1][2] + ")")
         )
-        if not checkMode then environmentmap = foundMaps[1][1]
-        addLogLine ((if checkMode then "Найдена" else "В Environment Map установлена") + " карта: " + foundMaps[1][1].name + " (" + foundMaps[1][2] + ")")
-        return foundMaps[1][1]
     ),
 
-    -- Получаем солнца
-    fn getSuns = (
-        local suns = for obj in objects where classOf obj == CoronaSun collect obj
-        if suns.count == 0 then (
-            addLogLine "Солнца не найдены, перестановка солнца не требуется" type: "warn"
-            return undefined
+    -- Устанавливаем материалы окон
+    fn changeMaterials params materials = (
+        for material in materials do (
+            local layerName = (dotNetClass "System.Text.RegularExpressions.Regex").Replace (toUpper material.name) ("_" + params[4] + "$") ""
+            local layer = LayerManager.getLayerFromName layerName
+            if layer == undefined then (
+                addLogLine ("Для материала окон " + material.name + " не найден слой " + layerName) type: "error"
+                if not checkMode then addLogLine "Материал окон не установлен" type: "error"
+            ) else (
+                if not checkMode then (
+                    layer.isHidden = false
+                    layer.nodes &nodes
+                    for obj in nodes do (
+                        obj.material = material
+                    )
+                    addLogLine ("Материал окон " + material.name + " установлен в слой " + layerName)
+                ) else (
+                    addLogLine ("Для материала окон " + material.name + " найден слой " + layerName)
+                )
+            )
         )
-        if suns.count == 1 then (
-            addLogLine "Найдено одно солнце, перестановка солнца не требуется" type: "warn"
-            return undefined
-        )
-        return suns
     ),
 
-    -- Устанавливаем солнце
+    -- Получаем карты и материалы окон
+    fn getMapsAndMaterials params = (
+        local pattern = "_" + params[4] + "$"
+        local maps = #()
+        local materials = #()
+        if sme.GetNumViews() == 0 and not sme.IsOpen() then (
+            sme.Open()
+            sme.Close()
+        )
+        for i = 1 to sme.GetNumViews() do (
+            local view = sme.GetView i
+            for j = 1 to view.GetNumNodes() do (
+                local node = view.GetNode j
+                local ref = node.reference
+                if ClassOf ref == CoronaSelect then append maps ref
+                if ClassOf ref == Multimaterial and (dotNetClass "System.Text.RegularExpressions.Regex").IsMatch (toUpper ref.name) pattern then append materials ref
+            )
+        )
+        if maps.count == 0 then (
+            addLogLine "Карты CoronaSelect не найдены, перестановка карты не требуется" type: "warn"
+        ) else (
+            -- Устанавливаем карту
+            changeMap params maps
+        )
+        if materials.count == 0 then (
+            addLogLine "Материалы окон не найдены, перестановка материалов окон не требуется" type: "warn"
+        ) else (
+            -- Устанавливаем материалы окон
+            changeMaterials params materials
+        )
+    ),
+
+    -- Устанавливаем солнца
     fn changeSun params suns = (
         local pattern = params[3] + "$"
         local foundSuns = #()
@@ -312,32 +349,42 @@ struct AutoPanoramaSwitcherStruct (
         if foundSuns.count == 0 then (
             addLogLine "По заданным параметрам солнце не найдено" type: "error"
             if not checkMode then addLogLine "Солнце не установлено" type: "error"
-            return undefined
-        )
-        if foundSuns.count > 1 then (
+        ) else if foundSuns.count > 1 then (
             addLogLine "По заданным параметрам найдено несколько солнц: " type: "error" postfix: ""
             for i = 1 to foundSuns.count do (
                 addLogLine foundSuns[i].name type: "error" prefix: "" postfix: (if i < foundSuns.count then ", " else "\n")
             )
             if not checkMode then addLogLine "Солнце не установлено" type: "error"
-            return undefined
-        )
-        local extraSuns = #()
-        for sun in suns do (
-            if sun.isFrozen then (
-                append extraSuns sun
+        ) else (
+            local extraSuns = #()
+            for sun in suns do (
+                if sun.isFrozen then (
+                    append extraSuns sun
+                )
+                if not checkMode then sun.isHidden = (sun != foundSuns[1] and not sun.isFrozen)
             )
-            if not checkMode then sun.isHidden = (sun != foundSuns[1] and not sun.isFrozen)
-        )
-        addLogLine ((if checkMode then "Найдено" else "Установлено") + " солнце: " + foundSuns[1].name)
-        if not extraSuns.count == 0 then (
-            addLogLine ((if checkMode then "Найдены" else "Установлены") + " фейковые солнца: ") postfix: ""
-            local extraSunNames = ""
-            for i = 1 to extraSuns.count do (
-                addLogLine extraSuns[1].name prefix: "" postfix: (if i < extraSuns.count then ", " else "\n")
+            addLogLine ((if checkMode then "Найдено" else "Установлено") + " солнце: " + foundSuns[1].name)
+            if not extraSuns.count == 0 then (
+                addLogLine ((if checkMode then "Найдены" else "Установлены") + " фейковые солнца: ") postfix: ""
+                local extraSunNames = ""
+                for i = 1 to extraSuns.count do (
+                    addLogLine extraSuns[1].name prefix: "" postfix: (if i < extraSuns.count then ", " else "\n")
+                )
             )
         )
-        return foundSuns[1]
+    ),
+
+    -- Получаем солнца
+    fn getSuns params = (
+        local suns = for obj in objects where classOf obj == CoronaSun collect obj
+        if suns.count == 0 then (
+            addLogLine "Солнца не найдены, перестановка солнца не требуется" type: "warn"
+        ) else if suns.count == 1 then (
+            addLogLine "Найдено одно солнце, перестановка солнца не требуется" type: "warn"
+        ) else (
+            -- Устанавливаем солнца
+            changeSun params suns
+        )
     ),
 
     -- Рендерим
@@ -388,17 +435,11 @@ struct AutoPanoramaSwitcherStruct (
             local params = defineCameraParams cams[i]
             if params == undefined then return false
 
-            -- Получаем карты
-            local maps = getMaps()
+            -- Получаем и устанавливаем карты и материалы для окон
+            getMapsAndMaterials params
 
-            -- Устанавливаем карту
-            if not maps == undefined then changeMap params maps
-
-            -- Получаем солнца 
-            local suns = getSuns()
-
-            -- Устанавливаем солнце
-            if not suns == undefined then changeSun params suns
+            -- Получаем и устанавливаем солнца 
+            getSuns params
 
             -- Рендерим
             if not checkMode and createTimerDialog() then render params path

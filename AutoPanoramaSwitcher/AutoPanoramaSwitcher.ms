@@ -169,7 +169,7 @@ struct AutoPanoramaSwitcherStruct (
     fn addLogLine message type: "info" prefix: undefined postfix: "\n" = (
         if prefix == undefined then (
             local time = getLocalTime()
-            time = formattedPrint test[4] format: "02d" + "." + formattedPrint test[2] format: "02d" + " " + formattedPrint test[5] format: "02d" + ":" + formattedPrint test[6] format: "02d"
+            time = formattedPrint time[4] format: "02d" + "." + formattedPrint time[2] format: "02d" + " " + formattedPrint time[5] format: "02d" + ":" + formattedPrint time[6] format: "02d"
             prefix = "[" + time + "] " + (toUpper type) + ": "
         )
         if type == "warn" then (

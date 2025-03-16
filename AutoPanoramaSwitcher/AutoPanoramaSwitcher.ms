@@ -44,7 +44,7 @@ struct AutoPanoramaSwitcherStruct (
         )
         on hintButton pressed do (
             -- Показываем окно правил именования
-            createDialog owner.rulesRollout width: 610 height: 756 parent: optionsRollout.hwnd
+            createDialog owner.rulesRollout width: 610 height: 856 parent: optionsRollout.hwnd
         )
         on optionsRollout close do (
             if not owner.logsRollout.isDisplayed then owner.completed = true
@@ -65,6 +65,9 @@ struct AutoPanoramaSwitcherStruct (
         group "Солнца" (
             dotNetControl sunTextBox "System.Windows.Forms.RichTextBox" width: 580 height: 179
         )
+        group "Рендер элементы" (
+            dotNetControl addTextBox "System.Windows.Forms.RichTextBox" width: 580 height: 70
+        )
         local textBox
         fn addLine message style: "Regular" bullet: false newline: true = (
             textBox.SelectionColor = (dotNetClass "System.Drawing.Color").White
@@ -73,7 +76,7 @@ struct AutoPanoramaSwitcherStruct (
             textBox.AppendText (message + (if newline then "\n" else ""))
         )
         on rulesRollout open do (
-            for textBox in #("camTextBox", "mapTextBox", "matTextBox", "sunTextBox") do (
+            for textBox in #("camTextBox", "mapTextBox", "matTextBox", "sunTextBox", "addTextBox") do (
                 textBox = getProperty rulesRollout textBox
                 textBox.BackColor = (dotNetClass "System.Drawing.Color").FromArgb(-12303292)
                 textBox.BorderStyle = (dotNetClass "System.Windows.Forms.BorderStyle").None
@@ -142,6 +145,14 @@ struct AutoPanoramaSwitcherStruct (
             addLine "Corona Sun001" bullet: true
             addLine "Sun_002" bullet: true
             addLine "Солнце_003" bullet: true newline: false
+            textBox= rulesRollout.addTextBox
+            addLine "По схеме " newline: false
+            addLine "*_(D|N)" style: "Bold" newline: false
+            addLine " также могут быть названы Render Elemets в настройках рендера. Для элементов, названных по этой схеме, будут автоматически выключаться галочки во вкладке LightMix во время рендера. Для дневных рендеров будут выключаться элементы " newline: false
+            addLine "*_N" style: "Bold" newline: false
+            addLine ", для ночных - " newline: false
+            addLine "*_D" style: "Bold"
+            addLine "\nRender Elemets, не помеченные по этой схеме, будут всегда автоматически включаться во время рендера." newline: false
         )
     ),
 
@@ -297,9 +308,9 @@ struct AutoPanoramaSwitcherStruct (
                     for obj in nodes do (
                         obj.material = material
                     )
-                    addLogLine ("Материал окон " + material.name + " установлен в слой " + layerName)
+                    addLogLine ("Материал окон " + material.name + " установлен в слой " + layer.name)
                 ) else (
-                    addLogLine ("Для материала окон " + material.name + " найден слой " + layerName)
+                    addLogLine ("Для материала окон " + material.name + " найден слой " + layer.name)
                 )
             )
         )
@@ -398,6 +409,7 @@ struct AutoPanoramaSwitcherStruct (
         rendSaveFile = true
         local outputFilename = params[1] + "_" + params[2] + "_" + params[4] + ".tif"
         rendOutputFilename = path + "\\" + outputFilename
+        -- Отключаем лишние Render Elements
         local manager = maxOps.GetCurRenderElementMgr()
         for i = 0 to (manager.NumRenderElements() - 1) do (
             local element = manager.GetRenderElement i
@@ -410,6 +422,21 @@ struct AutoPanoramaSwitcherStruct (
                 element.enabled = hiddenNodes == 0
             )
         )
+        -- Настраиваем галочки во вкладке LightMix
+        local pattern1 = "_[DN]$"
+        local pattern2 = "_" + params[4] + "$"
+        local lightMixNames = renderers.current.colormap_lightmix_elementNames
+        local lightMixEnabled = #()
+        for name in lightMixNames do (
+            local enabled = true
+            if (dotNetClass "System.Text.RegularExpressions.Regex").IsMatch (toUpper name) pattern1 then (
+                if not (dotNetClass "System.Text.RegularExpressions.Regex").IsMatch (toUpper name) pattern2 then (
+                    enabled = false
+                )
+            )
+            append lightMixEnabled enabled
+        )
+        renderers.current.colorMap_lightmixEnabledLayers = lightMixEnabled
         renderSceneDialog.update()
         max quick render
         rendSaveFile = false

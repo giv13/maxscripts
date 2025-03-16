@@ -256,8 +256,8 @@ struct AutoPanoramaSwitcherStruct (
         local foundMaps = #()
         for map in maps do (
             local selected = 0
-            for textmap in map.texmaps where not textmap == undefined do (
-                if (dotNetClass "System.Text.RegularExpressions.Regex").IsMatch (toUpper textmap.name) pattern then (
+            for textmap in map.texmaps do (
+                if not textmap == undefined and (dotNetClass "System.Text.RegularExpressions.Regex").IsMatch (toUpper textmap.name) pattern then (
                     map.selected = selected
                     append foundMaps #(
                         map,

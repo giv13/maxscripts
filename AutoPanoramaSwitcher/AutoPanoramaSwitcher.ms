@@ -44,7 +44,7 @@ struct AutoPanoramaSwitcherStruct (
         )
         on hintButton pressed do (
             -- Показываем окно правил именования
-            createDialog owner.rulesRollout width: 610 height: 856 parent: optionsRollout.hwnd
+            createDialog owner.rulesRollout width: 675 height: 856 parent: optionsRollout.hwnd
         )
         on optionsRollout close do (
             if not owner.logsRollout.isDisplayed then owner.completed = true
@@ -54,19 +54,19 @@ struct AutoPanoramaSwitcherStruct (
     -- Окно правил именования
     rulesRollout = rollout rulesRollout "Правила именования" (
         group "Камеры" (
-            dotNetControl camTextBox "System.Windows.Forms.RichTextBox" width: 580 height: 166
+            dotNetControl camTextBox "System.Windows.Forms.RichTextBox" width: 645 height: 166
         )
         group "Карты" (
-            dotNetControl mapTextBox "System.Windows.Forms.RichTextBox" width: 580 height: 140
+            dotNetControl mapTextBox "System.Windows.Forms.RichTextBox" width: 645 height: 140
         )
         group "Материалы окон" (
-            dotNetControl matTextBox "System.Windows.Forms.RichTextBox" width: 580 height: 140
+            dotNetControl matTextBox "System.Windows.Forms.RichTextBox" width: 645 height: 140
         )
         group "Солнца" (
-            dotNetControl sunTextBox "System.Windows.Forms.RichTextBox" width: 580 height: 179
+            dotNetControl sunTextBox "System.Windows.Forms.RichTextBox" width: 645 height: 179
         )
         group "Рендер элементы" (
-            dotNetControl addTextBox "System.Windows.Forms.RichTextBox" width: 580 height: 70
+            dotNetControl addTextBox "System.Windows.Forms.RichTextBox" width: 645 height: 70
         )
         local textBox
         fn addLine message style: "Regular" bullet: false newline: true = (
@@ -84,12 +84,12 @@ struct AutoPanoramaSwitcherStruct (
             )
             textBox = rulesRollout.camTextBox
             addLine "Название камеры должно формироваться следующим образом: " newline: false
-            addLine "*_p(число)_h(число)_s(число)_(D|N)" style: "Bold" newline: false
+            addLine "*_(лат. буквы)(число)_h(число)_s(число)_(D|N)" style: "Bold" newline: false
             addLine ", где:"
             addLine "*" style: "Bold" bullet: true newline: false
             addLine " - произвольная часть названия, необязательный параметр"
-            addLine "p(число)" style: "Bold" bullet: true newline: false
-            addLine " - номер панорамы, обязательный параметр"
+            addLine "(лат. буквы)(число)" style: "Bold" bullet: true newline: false
+            addLine " - название панорамы, обязательный параметр"
             addLine "h(число)" style: "Bold" bullet: true newline: false
             addLine " - высота съемки, обязательный параметр"
             addLine "s(число)" style: "Bold" bullet: true newline: false
@@ -98,25 +98,25 @@ struct AutoPanoramaSwitcherStruct (
             addLine " - время суток, обязательный параметр"
             addLine "\nПримеры правильных названий:"
             addLine "p01_h025_s001" bullet: true
-            addLine "Cam_p02_h050_s002" bullet: true
-            addLine "Camera_p03_h100_s003_D" bullet: true
-            addLine "Камера_p04_h200_s004_N" bullet: true newline: false
+            addLine "Cam_a02_h050_s002" bullet: true
+            addLine "Camera_b03_h100_s003_D" bullet: true
+            addLine "Камера_pan04_h200_s004_N" bullet: true newline: false
             textBox = rulesRollout.mapTextBox
             addLine "Название карты должно формироваться следующим образом: " newline: false
-            addLine "*_p(число)_h(число)_(D|N)" style: "Bold" newline: false
+            addLine "*_(лат. буквы)(число)_h(число)_(D|N)" style: "Bold" newline: false
             addLine ", где:"
             addLine "*" style: "Bold" bullet: true newline: false
             addLine " - произвольная часть названия, необязательный параметр"
-            addLine "p(число)" style: "Bold" bullet: true newline: false
-            addLine " - номер панорамы, обязательный параметр"
+            addLine "(лат. буквы)(число)" style: "Bold" bullet: true newline: false
+            addLine " - название панорамы, обязательный параметр"
             addLine "h(число)" style: "Bold" bullet: true newline: false
             addLine " - высота съемки, обязательный параметр"
             addLine "(D|N)" style: "Bold" bullet: true newline: false
             addLine " - время суток, обязательный параметр"
             addLine "\nПримеры правильных названий:"
             addLine "p01_h025" bullet: true
-            addLine "Map_p02_h050_D" bullet: true
-            addLine "Карта_p03_h100_N" bullet: true newline: false
+            addLine "Map_a02_h050_D" bullet: true
+            addLine "Карта_b03_h100_N" bullet: true newline: false
             textBox = rulesRollout.matTextBox
             addLine "Название материала окон должно формироваться следующим образом: " newline: false
             addLine "*_(D|N)" style: "Bold" newline: false
@@ -245,7 +245,7 @@ struct AutoPanoramaSwitcherStruct (
     
     -- Определяем параметры по названию камеры
     fn defineCameraParams cam = (
-        local pattern = "P(\d+)_H(\d+)_S(\d+)_([DN])$"
+        local pattern = "([A-Z]+\d+)_H(\d+)_S(\d+)_([DN])$"
         local match = (dotNetClass "System.Text.RegularExpressions.Regex").Match (toUpper cam.name) pattern
         if not match.Success then (
             addLogLine "По названию камеры не определены параметры" type: "error"
@@ -263,7 +263,7 @@ struct AutoPanoramaSwitcherStruct (
 
     -- Устанавливаем карту
     fn changeMap params maps = (
-        local pattern = "P" + params[1] + "_H" + params[2] + "_" + params[4] + "$"
+        local pattern = params[1] + "_H" + params[2] + "_" + params[4] + "$"
         local foundMaps = #()
         for map in maps do (
             local selected = 0

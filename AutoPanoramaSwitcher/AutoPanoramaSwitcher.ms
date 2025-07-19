@@ -246,7 +246,7 @@ struct AutoPanoramaSwitcherStruct (
     -- Определяем параметры по названию камеры
     fn defineCameraParams cam = (
         local pattern = "([A-Z]+\d+)_H(\d+)_S(\d+)_([DN])$"
-        local match = (dotNetClass "System.Text.RegularExpressions.Regex").Match (toUpper cam.name) pattern
+        local match = (dotNetClass "System.Text.RegularExpressions.Regex").Match cam.name pattern (dotNetClass "System.Text.RegularExpressions.RegexOptions").IgnoreCase
         if not match.Success then (
             addLogLine "По названию камеры не определены параметры" type: "error"
             addLogLine "Убедись, что тебе не требуется перестановка Environment Map и солнца или проверь название камеры" type: "error"
@@ -268,7 +268,7 @@ struct AutoPanoramaSwitcherStruct (
         for map in maps do (
             local selected = 0
             for textmap in map.texmaps do (
-                if not textmap == undefined and (dotNetClass "System.Text.RegularExpressions.Regex").IsMatch (toUpper textmap.name) pattern then (
+                if not textmap == undefined and (dotNetClass "System.Text.RegularExpressions.Regex").IsMatch textmap.name pattern (dotNetClass "System.Text.RegularExpressions.RegexOptions").IgnoreCase then (
                     map.selected = selected
                     append foundMaps #(
                         map,
@@ -296,7 +296,7 @@ struct AutoPanoramaSwitcherStruct (
     -- Устанавливаем материалы окон
     fn changeMaterials params materials = (
         for material in materials do (
-            local layerName = (dotNetClass "System.Text.RegularExpressions.Regex").Replace (toUpper material.name) ("_" + params[4] + "$") ""
+            local layerName = (dotNetClass "System.Text.RegularExpressions.Regex").Replace material.name ("_" + params[4] + "$") "" (dotNetClass "System.Text.RegularExpressions.RegexOptions").IgnoreCase
             local layer = LayerManager.getLayerFromName layerName
             if layer == undefined then (
                 addLogLine ("Для материала окон " + material.name + " не найден слой " + layerName) type: "error"
@@ -331,7 +331,7 @@ struct AutoPanoramaSwitcherStruct (
                 local node = view.GetNode j
                 local ref = node.reference
                 if ClassOf ref == CoronaSelect then append maps ref
-                if ClassOf ref == Multimaterial and (dotNetClass "System.Text.RegularExpressions.Regex").IsMatch (toUpper ref.name) pattern then append materials ref
+                if ClassOf ref == Multimaterial and (dotNetClass "System.Text.RegularExpressions.Regex").IsMatch ref.name pattern (dotNetClass "System.Text.RegularExpressions.RegexOptions").IgnoreCase then append materials ref
             )
         )
         if maps.count == 0 then (
@@ -429,8 +429,8 @@ struct AutoPanoramaSwitcherStruct (
         local lightMixEnabled = #()
         for name in lightMixNames do (
             local enabled = true
-            if (dotNetClass "System.Text.RegularExpressions.Regex").IsMatch (toUpper name) pattern1 then (
-                if not (dotNetClass "System.Text.RegularExpressions.Regex").IsMatch (toUpper name) pattern2 then (
+            if (dotNetClass "System.Text.RegularExpressions.Regex").IsMatch name pattern1 (dotNetClass "System.Text.RegularExpressions.RegexOptions").IgnoreCase then (
+                if not (dotNetClass "System.Text.RegularExpressions.Regex").IsMatch name pattern2 (dotNetClass "System.Text.RegularExpressions.RegexOptions").IgnoreCase then (
                     enabled = false
                 )
             )

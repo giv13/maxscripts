@@ -414,12 +414,17 @@ struct AutoPanoramaSwitcherStruct (
         for i = 0 to (manager.NumRenderElements() - 1) do (
             local element = manager.GetRenderElement i
             if (classOf element == CShading_LightSelect) then (
-                local nodes = element.includedNodes
-                local hiddenNodes = nodes.count
-                for node in nodes do (
-                    if not node.isHidden then hiddenNodes -= 1
+                local enabled = element.addEnvironment
+                if not enabled then (
+                    local nodes = element.includedNodes
+                    for node in nodes do (
+                        if not node.isHidden then (
+                            enabled = true
+                            exit
+                        )
+                    )
                 )
-                element.enabled = hiddenNodes == 0
+                element.enabled = enabled
             )
         )
         -- Настраиваем галочки во вкладке LightMix
